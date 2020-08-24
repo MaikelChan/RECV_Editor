@@ -1,7 +1,7 @@
 ﻿using System;
 using System.IO;
 
-namespace RECV_Editor
+namespace RECV_Editor.File_Formats
 {
     class RDX
     {
@@ -77,7 +77,7 @@ namespace RECV_Editor
                     byte[] subBlockData = new byte[subBlockSize];
                     ms.Read(subBlockData, 0, (int)subBlockSize);
 
-                    string texts = ALD.ExtractTexts(subBlockData, table);
+                    string texts = Texts.Extract(subBlockData, table);
                     File.WriteAllText(Path.Combine(outputFolder, "14.txt"), texts);
                 }
             }

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 
-namespace RECV_Editor
+namespace RECV_Editor.File_Formats
 {
     class Table
     {

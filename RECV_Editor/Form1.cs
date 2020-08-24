@@ -1,5 +1,6 @@
 ﻿using csharp_prs;
 using Microsoft.WindowsAPICodePack.Dialogs;
+using RECV_Editor.File_Formats;
 using System;
 using System.IO;
 using System.Web.Script.Serialization;
@@ -55,7 +56,7 @@ namespace RECV_Editor
             Table table = new Table(settings.TableFile);
             //Table frItEsTable = new Table(@"D:\Romhacking\Proyectos\Resident Evil Code Veronica\CodeVeronica_FRA_ITA_ESP_export.tbl");
             //ALD.Extract(@"D:\Romhacking\Proyectos\Resident Evil Code Veronica\Project\TEST.ALD", @"D:\Romhacking\Proyectos\Resident Evil Code Veronica\Project\TEST", table);
-            string text = ALD.ExtractTexts(File.ReadAllBytes(@"D:\Romhacking\Proyectos\Resident Evil Code Veronica\Project\00000082.text"), table);
+            string text = Texts.Extract(File.ReadAllBytes(@"D:\Romhacking\Proyectos\Resident Evil Code Veronica\Project\00000082.text"), table);
         }
 
         private void DebugDecompressButton_Click(object sender, EventArgs e)

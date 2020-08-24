@@ -3,7 +3,7 @@ using System.Globalization;
 using System.IO;
 using System.Text;
 
-namespace RECV_Editor
+namespace RECV_Editor.File_Formats
 {
     // Based on AFS Packer 1.2.1
 
