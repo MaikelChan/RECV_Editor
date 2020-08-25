@@ -1,6 +1,7 @@
 ﻿using csharp_prs;
 using RECV_Editor.File_Formats;
 using System.IO;
+using System.Threading.Tasks;
 
 namespace RECV_Editor
 {
@@ -9,8 +10,6 @@ namespace RECV_Editor
         const string ENG_PATH = "ENG";
         const string ENG_SYSMES1_ALD_PATH = ENG_PATH + "/SYSMES1.ALD";
         const string ENG_RDX_LNK1_AFS_PATH = ENG_PATH + "/RDX_LNK1.AFS";
-
-        const int MAX_PROGRESS_STEPS = 3;
 
         public static void ExtractAll(string inputFolder, string outputFolder, Table table)
         {
@@ -63,6 +62,8 @@ namespace RECV_Editor
             {
                 byte[] rdxData = File.ReadAllBytes(rdxFiles[f]);
                 byte[] rdxUncompressedData = Prs.Decompress(rdxData);
+                //File.WriteAllBytes(rdxFiles[f] + ".unc", rdxUncompressedData);
+
                 File.Delete(rdxFiles[f]);
 
                 Logger.Append($"Extracting RDX file \"{rdxFiles[f]}\"...");

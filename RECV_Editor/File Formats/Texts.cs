@@ -71,7 +71,7 @@ namespace RECV_Editor.File_Formats
                             }
                             else
                             {
-                                // 0xFFFF is usually an end of text code, but it can also appear after
+                                // 0xFFFF is usually an TEXT_END code, but it can also appear after
                                 // some special codes in the middle of a text. Make sure we don't treat
                                 // special codes as end of texts by checking the previous character.
 

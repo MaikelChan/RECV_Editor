@@ -22,6 +22,8 @@ namespace RECV_Editor
             Logger.Initialize();
 
             LoadSettings();
+
+            UpdateStatus("Ready...", 0, 100);
         }
 
         private void Form1_FormClosed(object sender, FormClosedEventArgs e)

@@ -1,5 +1,4 @@
-﻿using System;
-using System.IO;
+﻿using System.IO;
 
 namespace RECV_Editor.File_Formats
 {
@@ -66,7 +65,6 @@ namespace RECV_Editor.File_Formats
                     uint subBlockSize;
                     if (subBlockPositions[15] != 0)
                     {
-                        if (subBlockPositions[15] < subBlockPositions[14]) throw new Exception($"Position of SubBlock 15 is less than SubBlock 14..."); // Hopefully this never happens
                         subBlockSize = subBlockPositions[15] - subBlockPositions[14];
                     }
                     else
@@ -78,7 +76,33 @@ namespace RECV_Editor.File_Formats
                     ms.Read(subBlockData, 0, (int)subBlockSize);
 
                     string texts = Texts.Extract(subBlockData, table);
-                    File.WriteAllText(Path.Combine(outputFolder, "14.txt"), texts);
+                    File.WriteAllText(Path.Combine(outputFolder, "Strings.txt"), texts);
+                }
+
+                // Read texture block data
+
+                ms.Position = textureDataBlockPosition;
+
+                uint numberOfTextures = br.ReadUInt32();
+
+                uint[] texturePositions = new uint[numberOfTextures];
+                for (int tp = 0; tp < numberOfTextures; tp++)
+                {
+                    texturePositions[tp] = br.ReadUInt32();
+                }
+
+                for (int tp = 0; tp < numberOfTextures; tp++)
+                {
+                    ms.Position = texturePositions[tp];
+
+                    uint textureSize;
+                    if (tp < numberOfTextures - 1) textureSize = texturePositions[tp + 1] - texturePositions[tp];
+                    else textureSize = (uint)ms.Length - texturePositions[tp];
+
+                    byte[] textureData = new byte[textureSize];
+                    ms.Read(textureData, 0, (int)textureSize);
+
+                    TM2.Extract(textureData, Path.Combine(outputFolder, $"TIM2-{tp:0000}"));
                 }
             }
 
