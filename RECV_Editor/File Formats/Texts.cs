@@ -20,23 +20,23 @@ namespace RECV_Editor.File_Formats
                 throw new FileNotFoundException($"File \"{inputFile}\" does not exist!", inputFile);
             }
 
-            byte[] data = File.ReadAllBytes(inputFile);
-
-            return Extract(data, table);
+            using (FileStream fs = File.OpenRead(inputFile))
+            {
+                return Extract(fs, table);
+            }
         }
 
-        public static string Extract(byte[] textData, Table table)
+        public static string Extract(Stream textStream, Table table)
         {
             if (table == null)
             {
-                throw new ArgumentNullException("table", "Table cannot be null.");
+                throw new ArgumentNullException(nameof(table));
             }
 
             StringBuilder sb = new StringBuilder();
             List<ushort> characters = new List<ushort>();
 
-            using (MemoryStream ms = new MemoryStream(textData))
-            using (BinaryReader br = new BinaryReader(ms))
+            using (BinaryReader br = new BinaryReader(textStream, Encoding.UTF8, true))
             {
                 uint numberOfTexts = br.ReadUInt32();
 
@@ -51,7 +51,7 @@ namespace RECV_Editor.File_Formats
                 // Read each text
                 for (int t = 0; t < numberOfTexts; t++)
                 {
-                    ms.Position = pointers[t];
+                    textStream.Position = pointers[t];
 
                     characters.Clear();
 
@@ -94,7 +94,7 @@ namespace RECV_Editor.File_Formats
                 ushort value = br.ReadUInt16();
                 if (value != BLOCK_END && value != 0x0)
                 {
-                    Logger.Append($"Expected end of block but 0x{value:X} found at 0x{(ms.Position - 2):X}. This could mean that there are some unused contents at the end of this file.", Logger.LogTypes.Warning);
+                    Logger.Append($"Expected end of block but 0x{value:X} found at 0x{(textStream.Position - 2):X}. This could mean that there are some unused contents at the end of this file.", Logger.LogTypes.Warning);
                 }
 
                 sb.Append(BLOCK_END_STRING);

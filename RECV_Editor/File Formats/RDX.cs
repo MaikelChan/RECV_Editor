@@ -1,4 +1,6 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
+using System.Text;
 
 namespace RECV_Editor.File_Formats
 {
@@ -15,17 +17,30 @@ namespace RECV_Editor.File_Formats
                 throw new FileNotFoundException($"File \"{inputFile}\" does not exist!", inputFile);
             }
 
-            byte[] data = File.ReadAllBytes(inputFile);
-
-            return Extract(data, outputFolder, table);
+            using (FileStream fs = File.OpenRead(inputFile))
+            {
+                return Extract(fs, outputFolder, table);
+            }
         }
 
         public static Results Extract(byte[] rdxData, string outputFolder, Table table)
         {
-            if (!Directory.Exists(outputFolder)) Directory.CreateDirectory(outputFolder);
+            if (rdxData == null)
+            {
+                throw new ArgumentNullException(nameof(rdxData));
+            }
 
             using (MemoryStream ms = new MemoryStream(rdxData))
-            using (BinaryReader br = new BinaryReader(ms))
+            {
+                return Extract(ms, outputFolder, table);
+            }
+        }
+
+        public static Results Extract(Stream rdxStream, string outputFolder, Table table)
+        {
+            if (!Directory.Exists(outputFolder)) Directory.CreateDirectory(outputFolder);
+
+            using (BinaryReader br = new BinaryReader(rdxStream, Encoding.UTF8, true))
             {
                 uint magic = br.ReadUInt32();
                 if (magic != MAGIC)
@@ -33,7 +48,7 @@ namespace RECV_Editor.File_Formats
                     return Results.NotValidRdxFile;
                 }
 
-                ms.Position = 0x10;
+                rdxStream.Position = 0x10;
 
                 uint textDataBlockPosition = br.ReadUInt32();
                 uint unk1DataBlockPosition = br.ReadUInt32();
@@ -41,14 +56,14 @@ namespace RECV_Editor.File_Formats
                 uint unk3DataBlockPosition = br.ReadUInt32();
                 uint textureDataBlockPosition = br.ReadUInt32();
 
-                ms.Position = 0x60;
+                rdxStream.Position = 0x60;
 
                 byte[] authorName = new byte[32];
-                ms.Read(authorName, 0, 32);
+                rdxStream.Read(authorName, 0, 32);
 
                 // Start reading the text block data
 
-                ms.Position = textDataBlockPosition;
+                rdxStream.Position = textDataBlockPosition;
 
                 uint[] subBlockPositions = new uint[16];
                 for (int sbp = 0; sbp < 16; sbp++)
@@ -60,28 +75,18 @@ namespace RECV_Editor.File_Formats
 
                 if (subBlockPositions[14] != 0)
                 {
-                    ms.Position = subBlockPositions[14];
+                    rdxStream.Position = subBlockPositions[14];
 
-                    uint subBlockSize;
-                    if (subBlockPositions[15] != 0)
+                    using (SubStream textsStream = new SubStream(rdxStream, 0, rdxStream.Length - rdxStream.Position, true))
                     {
-                        subBlockSize = subBlockPositions[15] - subBlockPositions[14];
+                        string texts = Texts.Extract(textsStream, table);
+                        File.WriteAllText(Path.Combine(outputFolder, "Strings.txt"), texts);
                     }
-                    else
-                    {
-                        subBlockSize = unk1DataBlockPosition - subBlockPositions[14];
-                    }
-
-                    byte[] subBlockData = new byte[subBlockSize];
-                    ms.Read(subBlockData, 0, (int)subBlockSize);
-
-                    string texts = Texts.Extract(subBlockData, table);
-                    File.WriteAllText(Path.Combine(outputFolder, "Strings.txt"), texts);
                 }
 
                 // Read texture block data
 
-                ms.Position = textureDataBlockPosition;
+                rdxStream.Position = textureDataBlockPosition;
 
                 uint numberOfTextures = br.ReadUInt32();
 
@@ -93,16 +98,16 @@ namespace RECV_Editor.File_Formats
 
                 for (int tp = 0; tp < numberOfTextures; tp++)
                 {
-                    ms.Position = texturePositions[tp];
+                    rdxStream.Position = texturePositions[tp];
 
                     uint textureSize;
                     if (tp < numberOfTextures - 1) textureSize = texturePositions[tp + 1] - texturePositions[tp];
-                    else textureSize = (uint)ms.Length - texturePositions[tp];
+                    else textureSize = (uint)rdxStream.Length - texturePositions[tp];
 
-                    byte[] textureData = new byte[textureSize];
-                    ms.Read(textureData, 0, (int)textureSize);
-
-                    TM2.Extract(textureData, Path.Combine(outputFolder, $"TIM2-{tp:0000}"));
+                    using (SubStream tm2Stream = new SubStream(rdxStream, 0, textureSize, true))
+                    {
+                        TM2.Extract(rdxStream, Path.Combine(outputFolder, $"TIM2-{tp:0000}"));
+                    }
                 }
             }
 

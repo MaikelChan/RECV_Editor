@@ -67,6 +67,7 @@
     <Compile Include="File Formats\RDX.cs" />
     <Compile Include="RECV.cs" />
     <Compile Include="File Formats\Table.cs" />
+    <Compile Include="SubStream.cs" />
     <Compile Include="Utils.cs" />
     <EmbeddedResource Include="Form1.resx">
       <DependentUpon>Form1.cs</DependentUpon>

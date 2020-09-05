@@ -12,12 +12,11 @@ namespace RECV_Editor.File_Formats
 
         const uint PLI_HEADER_SIZE = 32;
 
-        public static void Extract(byte[] data, string outputFolder)
+        public static void Extract(Stream tm2Stream, string outputFolder)
         {
             if (!Directory.Exists(outputFolder)) Directory.CreateDirectory(outputFolder);
 
-            using (MemoryStream ms = new MemoryStream(data))
-            using (BinaryReader br = new BinaryReader(ms))
+            using (BinaryReader br = new BinaryReader(tm2Stream, Encoding.UTF8, true))
             {
                 uint currentTextureIndex = 0;
 
@@ -32,14 +31,12 @@ namespace RECV_Editor.File_Formats
                     {
                         uint pliSize = br.ReadUInt32();
 
-                        ms.Position -= 8;
+                        tm2Stream.Position -= 8;
 
                         using (FileStream fs = File.OpenWrite(outputFileName + ".PLI"))
                         {
-                            fs.Write(data, (int)ms.Position, (int)(PLI_HEADER_SIZE + pliSize));
+                            tm2Stream.CopySliceTo(fs, (int)(PLI_HEADER_SIZE + pliSize));
                         }
-
-                        ms.Position += PLI_HEADER_SIZE + pliSize;
 
                         magic = br.ReadUInt32();
                     }
@@ -52,21 +49,19 @@ namespace RECV_Editor.File_Formats
 
                     uint size = br.ReadUInt32();
 
-                    ms.Position += 24;
+                    tm2Stream.Position += 24;
 
                     using (FileStream fs = File.OpenWrite(outputFileName + ".TM2"))
                     {
-                        fs.Write(data, (int)ms.Position, (int)size);
+                        tm2Stream.CopySliceTo(fs, (int)size);
                     }
 
-                    ms.Position += size;
-
                     // Check if there are more TIM2 files
-                    if (ms.Position >= ms.Length) break;
+                    if (tm2Stream.Position >= tm2Stream.Length) break;
                     uint hex = br.ReadUInt32();
                     if (hex == 0xFFFFFFFF) break;
 
-                    ms.Position -= 4;
+                    tm2Stream.Position -= 4;
                     currentTextureIndex++;
                 }
             }

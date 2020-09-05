@@ -71,7 +71,11 @@ namespace RECV_Editor
             Table table = new Table(settings.TableFile);
             //Table frItEsTable = new Table(@"D:\Romhacking\Proyectos\Resident Evil Code Veronica\CodeVeronica_FRA_ITA_ESP_export.tbl");
             //ALD.Extract(@"D:\Romhacking\Proyectos\Resident Evil Code Veronica\Project\TEST.ALD", @"D:\Romhacking\Proyectos\Resident Evil Code Veronica\Project\TEST", table);
-            string text = Texts.Extract(File.ReadAllBytes(@"D:\Romhacking\Proyectos\Resident Evil Code Veronica\Project\00000082.text"), table);
+
+            using (FileStream fs = File.OpenRead(@"D:\Romhacking\Proyectos\Resident Evil Code Veronica\Project\00000082.text"))
+            {
+                string text = Texts.Extract(fs, table);
+            }
         }
 
         private void DebugDecompressButton_Click(object sender, EventArgs e)
