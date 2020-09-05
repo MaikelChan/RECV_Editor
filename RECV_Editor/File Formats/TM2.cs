@@ -47,7 +47,7 @@ namespace RECV_Editor.File_Formats
                     // Here should be TM2 data, check if that's the case
                     if (magic != TIM2_MAGIC)
                     {
-                        throw new FileFormatException($"Invalid TIM2 data found in \"{outputFileName}\".");
+                        throw new InvalidDataException($"Invalid TIM2 data found in \"{outputFileName}\".");
                     }
 
                     uint size = br.ReadUInt32();

@@ -1,8 +1,9 @@
-﻿using csharp_prs;
-using Microsoft.WindowsAPICodePack.Dialogs;
+﻿using Microsoft.WindowsAPICodePack.Dialogs;
+using PSO.PRS;
 using RECV_Editor.File_Formats;
 using System;
 using System.IO;
+using System.Threading.Tasks;
 using System.Web.Script.Serialization;
 using System.Windows.Forms;
 
@@ -10,6 +11,8 @@ namespace RECV_Editor
 {
     public partial class Form1 : Form
     {
+        bool isProcessRunning;
+
         public Form1()
         {
             InitializeComponent();
@@ -23,24 +26,34 @@ namespace RECV_Editor
 
             LoadSettings();
 
-            UpdateStatus("Ready...", 0, 100);
+            SetProcessRunning(false);
+            UpdateStatus(new RECV.ProgressInfo("Ready...", 0, 100));
         }
 
-        private void Form1_FormClosed(object sender, FormClosedEventArgs e)
+        private void Form1_FormClosing(object sender, FormClosingEventArgs e)
         {
-            Logger.Finish();
+            if (isProcessRunning)
+            {
+                MessageBox.Show("There are tasks currently running. Please wait until they finish.", "Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                e.Cancel = true;
+            }
+            else
+            {
+                Logger.Finish();
+            }
         }
 
-        private void ExtractAllButton_Click(object sender, EventArgs e)
+        private async void ExtractAllButton_Click(object sender, EventArgs e)
         {
-            EnableControls(false);
+            SetProcessRunning(true);
 
 #if !DEBUG
             try
             {
 #endif
-                Table table = new Table(settings.TableFile);
-                RECV.ExtractAll(settings.GameRootFolder, settings.ProjectFolder, table);
+            Table table = new Table(settings.TableFile);
+            Progress<RECV.ProgressInfo> progress = new Progress<RECV.ProgressInfo>(UpdateStatus);
+            await Task.Run(() => RECV.ExtractAll(settings.GameRootFolder, settings.ProjectFolder, table, progress));
 #if !DEBUG
             }
             catch (Exception ex)
@@ -50,7 +63,7 @@ namespace RECV_Editor
             }
 #endif
 
-            EnableControls(true);
+            SetProcessRunning(false);
         }
 
         private void DebugExtractButton_Click(object sender, EventArgs e)
@@ -65,7 +78,7 @@ namespace RECV_Editor
         {
             string prsFile = @"D:\Romhacking\Proyectos\Resident Evil Code Veronica\Project\00000162";
             byte[] prsData = File.ReadAllBytes(prsFile);
-            byte[] uncompressedPrsData = Prs.Decompress(prsData);
+            byte[] uncompressedPrsData = PRS.Decompress(prsData);
 
             File.WriteAllBytes(prsFile + ".unc", uncompressedPrsData);
 
@@ -172,19 +185,21 @@ namespace RECV_Editor
 
         #endregion
 
-        void EnableControls(bool value)
+        void SetProcessRunning(bool value)
         {
-            ExtractAllButton.Enabled = value;
-            DebugGroup.Enabled = value;
-            DebugExtractButton.Enabled = value;
-            DebugDecompressButton.Enabled = value;
+            isProcessRunning = value;
+
+            ExtractAllButton.Enabled = !value;
+            DebugGroup.Enabled = !value;
+            DebugExtractButton.Enabled = !value;
+            DebugDecompressButton.Enabled = !value;
         }
 
-        void UpdateStatus(string statusText, int progressValue, int maxProgressValue)
+        void UpdateStatus(RECV.ProgressInfo progressInfo)
         {
-            StatusLabel.Text = statusText;
-            StatusProgressBar.Value = progressValue;
-            StatusProgressBar.Maximum = maxProgressValue;
+            StatusLabel.Text = progressInfo.statusText;
+            StatusProgressBar.Value = progressInfo.progressValue;
+            StatusProgressBar.Maximum = progressInfo.maxProgressValue;
         }
     }
 }

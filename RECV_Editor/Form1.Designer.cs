@@ -43,7 +43,7 @@
             // 
             this.DebugExtractButton.Location = new System.Drawing.Point(6, 19);
             this.DebugExtractButton.Name = "DebugExtractButton";
-            this.DebugExtractButton.Size = new System.Drawing.Size(125, 37);
+            this.DebugExtractButton.Size = new System.Drawing.Size(166, 37);
             this.DebugExtractButton.TabIndex = 0;
             this.DebugExtractButton.Text = "Extract";
             this.DebugExtractButton.UseVisualStyleBackColor = true;
@@ -51,9 +51,9 @@
             // 
             // DebugDecompressButton
             // 
-            this.DebugDecompressButton.Location = new System.Drawing.Point(137, 19);
+            this.DebugDecompressButton.Location = new System.Drawing.Point(177, 19);
             this.DebugDecompressButton.Name = "DebugDecompressButton";
-            this.DebugDecompressButton.Size = new System.Drawing.Size(125, 37);
+            this.DebugDecompressButton.Size = new System.Drawing.Size(166, 37);
             this.DebugDecompressButton.TabIndex = 1;
             this.DebugDecompressButton.Text = "Decompress";
             this.DebugDecompressButton.UseVisualStyleBackColor = true;
@@ -67,7 +67,7 @@
             this.DebugGroup.Controls.Add(this.DebugDecompressButton);
             this.DebugGroup.Location = new System.Drawing.Point(12, 71);
             this.DebugGroup.Name = "DebugGroup";
-            this.DebugGroup.Size = new System.Drawing.Size(269, 66);
+            this.DebugGroup.Size = new System.Drawing.Size(349, 66);
             this.DebugGroup.TabIndex = 2;
             this.DebugGroup.TabStop = false;
             this.DebugGroup.Text = "Debug";
@@ -76,7 +76,7 @@
             // 
             this.ExtractAllButton.Location = new System.Drawing.Point(12, 12);
             this.ExtractAllButton.Name = "ExtractAllButton";
-            this.ExtractAllButton.Size = new System.Drawing.Size(269, 51);
+            this.ExtractAllButton.Size = new System.Drawing.Size(349, 51);
             this.ExtractAllButton.TabIndex = 3;
             this.ExtractAllButton.Text = "Extract All...";
             this.ExtractAllButton.UseVisualStyleBackColor = true;
@@ -89,7 +89,7 @@
             this.StatusLabel});
             this.StatusStrip.Location = new System.Drawing.Point(0, 140);
             this.StatusStrip.Name = "StatusStrip";
-            this.StatusStrip.Size = new System.Drawing.Size(293, 22);
+            this.StatusStrip.Size = new System.Drawing.Size(373, 22);
             this.StatusStrip.SizingGrip = false;
             this.StatusStrip.TabIndex = 4;
             this.StatusStrip.Text = "statusStrip1";
@@ -110,7 +110,7 @@
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(293, 162);
+            this.ClientSize = new System.Drawing.Size(373, 162);
             this.Controls.Add(this.StatusStrip);
             this.Controls.Add(this.ExtractAllButton);
             this.Controls.Add(this.DebugGroup);
@@ -120,7 +120,7 @@
             this.Name = "Form1";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = "Resident Evil: Code Veronica - Editor";
-            this.FormClosed += new System.Windows.Forms.FormClosedEventHandler(this.Form1_FormClosed);
+            this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.Form1_FormClosing);
             this.Load += new System.EventHandler(this.Form1_Load);
             this.DebugGroup.ResumeLayout(false);
             this.StatusStrip.ResumeLayout(false);
