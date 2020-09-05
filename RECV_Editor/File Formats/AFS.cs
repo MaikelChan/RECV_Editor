@@ -1,11 +1,12 @@
-﻿using System;
+﻿using RECV_Editor;
+using System;
 using System.Globalization;
 using System.IO;
 using System.Text;
 
-namespace RECV_Editor.File_Formats
+namespace AFSPacker
 {
-    // Based on AFS Packer 1.2.1
+    // Based on https://github.com/MaikelChan/AFSPacker/commit/7112d14a08b2febcc6740b28d2794339139fef19
 
     static class AFS
     {
@@ -13,8 +14,15 @@ namespace RECV_Editor.File_Formats
         const uint HEADER_MAGIC_2 = 0x20534641;
         const string NULL_FILE = "#NULL#";
 
+        public enum NotificationTypes { Info, Warning, Error }
+
+        public delegate void NotifyProgressDelegate(NotificationTypes type, string message);
+        public static event NotifyProgressDelegate NotifyProgress;
+
         public static void CreateAFS(string inputDirectory, string outputFile, string filesList = null, bool preserveFileNames = true)
         {
+            NotifyProgress?.Invoke(NotificationTypes.Info, "Packaging files...");
+
             string[] inputFiles;
 
             if (string.IsNullOrEmpty(filesList))
@@ -83,6 +91,9 @@ namespace RECV_Editor.File_Formats
                             attributes[n].FileSize = (uint)f.Length;
                         }
                     }
+
+                    if (preserveFileNames) NotifyProgress?.Invoke(NotificationTypes.Info, $"Processing TOC and attributes... {n}/{inputFiles.Length - 1}");
+                    else NotifyProgress?.Invoke(NotificationTypes.Info, $"Processing TOC... {n}/{inputFiles.Length - 1}");
                 }
 
                 //Write TOC to file
@@ -90,6 +101,8 @@ namespace RECV_Editor.File_Formats
                 {
                     bw.Write(toc[n].Offset);
                     bw.Write(toc[n].FileSize);
+
+                    NotifyProgress?.Invoke(NotificationTypes.Info, $"Writing TOC... {n}/{inputFiles.Length - 1}");
                 }
 
                 uint attributeTableOffset = 0;
@@ -110,10 +123,15 @@ namespace RECV_Editor.File_Formats
                 {
                     if (inputFiles[n] != NULL_FILE)
                     {
-                        byte[] data = File.ReadAllBytes(inputFiles[n]);
                         fs1.Seek(toc[n].Offset, SeekOrigin.Begin);
-                        fs1.Write(data, 0, data.Length);
+
+                        using (FileStream fs = File.OpenRead(inputFiles[n]))
+                        {
+                            fs.CopyTo(fs1);
+                        }
                     }
+
+                    NotifyProgress?.Invoke(NotificationTypes.Info, $"Writing files... {n}/{inputFiles.Length - 1}");
                 }
 
                 if (preserveFileNames)
@@ -133,6 +151,8 @@ namespace RECV_Editor.File_Formats
                         bw.Write(attributes[n].Minute);
                         bw.Write(attributes[n].Second);
                         bw.Write(attributes[n].FileSize);
+
+                        NotifyProgress?.Invoke(NotificationTypes.Info, $"Writing attributes... {n}/{inputFiles.Length - 1}");
                     }
                 }
 
@@ -153,8 +173,11 @@ namespace RECV_Editor.File_Formats
                 uint magic = br.ReadUInt32();
                 if (magic != HEADER_MAGIC_1 && magic != HEADER_MAGIC_2) //If Magic is different than AFS
                 {
-                    throw new FileFormatException($"Error: \"{inputFile}\" doesn't seem to be a valid AFS file.");
+                    NotifyProgress?.Invoke(NotificationTypes.Error, "Input file doesn't seem to be a valid AFS file.");
+                    return;
                 }
+
+                NotifyProgress?.Invoke(NotificationTypes.Info, "Extracting files...");
 
                 uint numberOfFiles = br.ReadUInt32();
 
@@ -166,6 +189,8 @@ namespace RECV_Editor.File_Formats
                 {
                     toc[n].Offset = br.ReadUInt32();
                     toc[n].FileSize = br.ReadUInt32();
+
+                    NotifyProgress?.Invoke(NotificationTypes.Info, $"Reading TOC... {n}/{numberOfFiles - 1}");
                 }
 
                 //Read Filename Directory Offset and Size
@@ -200,6 +225,8 @@ namespace RECV_Editor.File_Formats
                         atrributes[n].Minute = br.ReadUInt16();
                         atrributes[n].Second = br.ReadUInt16();
                         atrributes[n].FileSize = br.ReadUInt32();
+
+                        NotifyProgress?.Invoke(NotificationTypes.Info, $"Reading attributes table... {n}/{numberOfFiles - 1}");
                     }
 
                     fileName = CheckForDuplicatedFilenames(fileName);
@@ -221,17 +248,27 @@ namespace RECV_Editor.File_Formats
                 {
                     if (toc[n].FileSize == 0 && toc[n].Offset == 0)
                     {
+                        NotifyProgress?.Invoke(NotificationTypes.Warning, $"File \"{n}\" is a null file; Skipping.");
+
                         filelist[n] = NULL_FILE;
 
                         continue;
                     }
 
-                    byte[] filedata = new byte[toc[n].FileSize];
+                    NotifyProgress?.Invoke(NotificationTypes.Info, $"Reading files... {n}/{numberOfFiles - 1}");
+
                     fs1.Seek(toc[n].Offset, SeekOrigin.Begin);
-                    fs1.Read(filedata, 0, filedata.Length);
 
                     string outputFile = Path.Combine(outputDirectory, fileName[n]);
-                    File.WriteAllBytes(outputFile, filedata);
+                    if (File.Exists(outputFile))
+                    {
+                        NotifyProgress?.Invoke(NotificationTypes.Warning, $"File \"{outputFile}\" already exists. Overwriting.");
+                    }
+
+                    using (FileStream fs = File.OpenWrite(outputFile))
+                    {
+                        fs1.CopySliceTo(fs, (int)toc[n].FileSize);
+                    }
 
                     if (areThereAttributes)
                     {
@@ -242,7 +279,7 @@ namespace RECV_Editor.File_Formats
                         }
                         catch (ArgumentOutOfRangeException)
                         {
-
+                            NotifyProgress?.Invoke(NotificationTypes.Warning, "Invalid date. Ignoring.");
                         }
                     }
 
@@ -251,12 +288,6 @@ namespace RECV_Editor.File_Formats
 
                 if (!string.IsNullOrEmpty(filesList)) File.WriteAllLines(filesList, filelist);
             }
-        }
-
-        static uint Pad(uint value, uint padBytes)
-        {
-            if ((value % padBytes) != 0) return value + (padBytes - (value % padBytes));
-            else return value;
         }
 
         static string[] CheckForDuplicatedFilenames(string[] fileNames)
@@ -277,6 +308,12 @@ namespace RECV_Editor.File_Formats
             }
 
             return output;
+        }
+
+        static uint Pad(uint value, uint padBytes)
+        {
+            if ((value % padBytes) != 0) return value + (padBytes - (value % padBytes));
+            else return value;
         }
 
         public struct TableOfContents

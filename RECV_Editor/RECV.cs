@@ -1,4 +1,5 @@
-﻿using csharp_prs;
+﻿using AFSPacker;
+using csharp_prs;
 using RECV_Editor.File_Formats;
 using System.IO;
 using System.Threading.Tasks;
@@ -52,7 +53,9 @@ namespace RECV_Editor
 
             Logger.Append($"Extracting \"{RDX_LNK1}\"...");
             string engRDX_LNK1OutputPath = Path.Combine(outputFolder, ENG_RDX_LNK1_AFS_PATH);
+            AFS.NotifyProgress += AFS_NotifyProgress;
             AFS.ExtractAFS(RDX_LNK1, Path.Combine(outputFolder, engRDX_LNK1OutputPath));
+            AFS.NotifyProgress -= AFS_NotifyProgress;
 
             // Decompress files in RDX_LNK1
 
@@ -68,10 +71,15 @@ namespace RECV_Editor
 
                 Logger.Append($"Extracting RDX file \"{rdxFiles[f]}\"...");
                 RDX.Results result = RDX.Extract(rdxUncompressedData, rdxFiles[f], table);
-                if (result == RDX.Results.NotValidRdxFile) Logger.Append($"\"{RDX_LNK1}\" is not a valid RDX file. Ignoring.", Logger.LogTypes.Warning);
+                if (result == RDX.Results.NotValidRdxFile) Logger.Append($"\"{rdxFiles[f]}\" is not a valid RDX file. Ignoring.", Logger.LogTypes.Warning);
             }
 
             Logger.Append("Extract all process has finished. ------------------------------------------------------------------");
+        }
+
+        static void AFS_NotifyProgress(AFS.NotificationTypes type, string message)
+        {
+            Logger.Append(message, (Logger.LogTypes)type);
         }
     }
 }
