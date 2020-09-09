@@ -35,6 +35,7 @@
             this.StatusStrip = new System.Windows.Forms.StatusStrip();
             this.StatusProgressBar = new System.Windows.Forms.ToolStripProgressBar();
             this.StatusLabel = new System.Windows.Forms.ToolStripStatusLabel();
+            this.InsertAllButton = new System.Windows.Forms.Button();
             this.DebugGroup.SuspendLayout();
             this.StatusStrip.SuspendLayout();
             this.SuspendLayout();
@@ -65,7 +66,7 @@
             | System.Windows.Forms.AnchorStyles.Right)));
             this.DebugGroup.Controls.Add(this.DebugExtractButton);
             this.DebugGroup.Controls.Add(this.DebugDecompressButton);
-            this.DebugGroup.Location = new System.Drawing.Point(12, 71);
+            this.DebugGroup.Location = new System.Drawing.Point(12, 69);
             this.DebugGroup.Name = "DebugGroup";
             this.DebugGroup.Size = new System.Drawing.Size(349, 66);
             this.DebugGroup.TabIndex = 2;
@@ -76,7 +77,7 @@
             // 
             this.ExtractAllButton.Location = new System.Drawing.Point(12, 12);
             this.ExtractAllButton.Name = "ExtractAllButton";
-            this.ExtractAllButton.Size = new System.Drawing.Size(349, 51);
+            this.ExtractAllButton.Size = new System.Drawing.Size(172, 51);
             this.ExtractAllButton.TabIndex = 3;
             this.ExtractAllButton.Text = "Extract All...";
             this.ExtractAllButton.UseVisualStyleBackColor = true;
@@ -106,11 +107,22 @@
             this.StatusLabel.Size = new System.Drawing.Size(118, 17);
             this.StatusLabel.Text = "toolStripStatusLabel1";
             // 
+            // InsertAllButton
+            // 
+            this.InsertAllButton.Location = new System.Drawing.Point(191, 13);
+            this.InsertAllButton.Name = "InsertAllButton";
+            this.InsertAllButton.Size = new System.Drawing.Size(170, 50);
+            this.InsertAllButton.TabIndex = 5;
+            this.InsertAllButton.Text = "Insert All...";
+            this.InsertAllButton.UseVisualStyleBackColor = true;
+            this.InsertAllButton.Click += new System.EventHandler(this.InsertAllButton_Click);
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(373, 162);
+            this.Controls.Add(this.InsertAllButton);
             this.Controls.Add(this.StatusStrip);
             this.Controls.Add(this.ExtractAllButton);
             this.Controls.Add(this.DebugGroup);
@@ -139,6 +151,7 @@
         private System.Windows.Forms.StatusStrip StatusStrip;
         private System.Windows.Forms.ToolStripProgressBar StatusProgressBar;
         private System.Windows.Forms.ToolStripStatusLabel StatusLabel;
+        private System.Windows.Forms.Button InsertAllButton;
     }
 }
 

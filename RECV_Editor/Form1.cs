@@ -66,16 +66,47 @@ namespace RECV_Editor
             SetProcessRunning(false);
         }
 
+        private async void InsertAllButton_Click(object sender, EventArgs e)
+        {
+            SetProcessRunning(true);
+
+#if !DEBUG
+            try
+            {
+#endif
+            Table table = new Table(settings.TableFile);
+            Progress<RECV.ProgressInfo> progress = new Progress<RECV.ProgressInfo>(UpdateStatus);
+            await Task.Run(() => RECV.InsertAll(settings.GameRootFolder, settings.ProjectFolder, table, progress));
+#if !DEBUG
+            }
+            catch (Exception ex)
+            {
+                Logger.Append(ex.Message, Logger.LogTypes.Error);
+                MessageBox.Show($"{ex.Message}\n\n{ex}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+#endif
+
+            SetProcessRunning(false);
+        }
+
         private void DebugExtractButton_Click(object sender, EventArgs e)
         {
             Table table = new Table(settings.TableFile);
-            //Table frItEsTable = new Table(@"D:\Romhacking\Proyectos\Resident Evil Code Veronica\CodeVeronica_FRA_ITA_ESP_export.tbl");
-            //ALD.Extract(@"D:\Romhacking\Proyectos\Resident Evil Code Veronica\Project\TEST.ALD", @"D:\Romhacking\Proyectos\Resident Evil Code Veronica\Project\TEST", table);
 
-            using (FileStream fs = File.OpenRead(@"D:\Romhacking\Proyectos\Resident Evil Code Veronica\Project\00000082.text"))
-            {
-                string text = Texts.Extract(fs, table);
-            }
+            ALD.Extract(@"D:\Romhacking\Proyectos\Resident Evil Code Veronica\ENG\SYSMES1.ALD", @"D:\Romhacking\Proyectos\Resident Evil Code Veronica\Project\TEST", table);
+            ALD.Insert(@"D:\Romhacking\Proyectos\Resident Evil Code Veronica\Project\TEST", @"D:\Romhacking\Proyectos\Resident Evil Code Veronica\Project\TEST.ALD", table);
+
+            //using (FileStream fs = File.OpenRead(@"D:\Romhacking\Proyectos\Resident Evil Code Veronica\Project\00000082.text"))
+            //{
+            //    string text = Texts.Extract(fs, table);
+            //}
+
+            //string texts = File.ReadAllText(@"D:\Romhacking\Proyectos\Resident Evil Code Veronica\Project\ENG\SYSMES1.ALD\01.txt");
+
+            //using (FileStream fs = File.Create(@"D:\Romhacking\Proyectos\Resident Evil Code Veronica\Project\SYSMES1_2"))
+            //{
+            //    Texts.Insert(texts, fs, table);
+            //}
         }
 
         private void DebugDecompressButton_Click(object sender, EventArgs e)

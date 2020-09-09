@@ -110,6 +110,11 @@ namespace RECV_Editor
             GC.Collect();
         }
 
+        public static void InsertAll(string inputFolder, string outputFolder, Table table, IProgress<ProgressInfo> progress)
+        {
+
+        }
+
         static void AFS_NotifyProgress(AFS.NotificationTypes type, string message)
         {
             Logger.Append(message, (Logger.LogTypes)type);

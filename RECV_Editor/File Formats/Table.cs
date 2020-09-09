@@ -10,8 +10,15 @@ namespace RECV_Editor.File_Formats
         public const ushort TIME_CODE = 0xFF02;
         public const ushort ITEM_CODE = 0xFF03;
 
+        const string PAGE_CODE_STRING = "[PAGE]";
+        const string TIME_CODE_START_STRING = "[TIME:";
+        const string ITEM_CODE_START_STRING = "[ITEM:";
+
         readonly Dictionary<ushort, string> hexToString = null;
         readonly Dictionary<string, ushort> stringToHex = null;
+
+        readonly StringBuilder sb;
+        readonly List<ushort> hex;
 
         public Table(string tableFile)
         {
@@ -22,6 +29,9 @@ namespace RECV_Editor.File_Formats
 
             hexToString = new Dictionary<ushort, string>();
             stringToHex = new Dictionary<string, ushort>();
+
+            sb = new StringBuilder();
+            hex = new List<ushort>();
 
             string[] lines = File.ReadAllLines(tableFile);
 
@@ -81,20 +91,20 @@ namespace RECV_Editor.File_Formats
 
         public string GetString(ushort[] hexData)
         {
-            StringBuilder sb = new StringBuilder();
+            sb.Clear();
 
             for (int h = 0; h < hexData.Length; h++)
             {
                 // Check if it's a special code
                 if (hexData[h] == TIME_CODE)
                 {
-                    if (hexData[h + 1] == 0x0000) sb.Append("[PAGE]\n");
-                    else sb.Append($"[TIME:{hexData[h + 1]:X}]");
+                    if (hexData[h + 1] == 0x0000) sb.Append($"{PAGE_CODE_STRING}\n");
+                    else sb.Append($"{TIME_CODE_START_STRING}{hexData[h + 1]:X4}]");
                     h++;
                 }
                 else if (hexData[h] == ITEM_CODE)
                 {
-                    sb.Append($"[ITEM:{hexData[h + 1]:X}]");
+                    sb.Append($"{ITEM_CODE_START_STRING}{hexData[h + 1]:X4}]");
                     h++;
                 }
                 else
@@ -105,6 +115,68 @@ namespace RECV_Editor.File_Formats
             }
 
             return sb.ToString();
+        }
+
+        public ushort[] GetHex(string text)
+        {
+            hex.Clear();
+
+            for (int s = 0; s < text.Length; s++)
+            {
+                string currentCharacter = text.Substring(s, 1);
+
+                if (currentCharacter == "[")
+                {
+                    int codeEndIndex = text.IndexOf("]", s);
+                    if (codeEndIndex < 0) throw new FormatException($"Found start of code \"[\" character but not found matching end of code \"]\" character in text:\n\n{text}");
+
+                    string code = text.Substring(s, codeEndIndex + 1 - s);
+
+                    // Check if it's a special code
+                    if (code == PAGE_CODE_STRING)
+                    {
+                        hex.Add(TIME_CODE);
+                        hex.Add(0x0000);
+
+                        // Ignore the "\n" after a [PAGE] code.
+                        s++;
+                    }
+                    else if (code.StartsWith(TIME_CODE_START_STRING))
+                    {
+                        ushort time = Convert.ToUInt16(code.Substring(TIME_CODE_START_STRING.Length, 4), 16);
+                        hex.Add(TIME_CODE);
+                        hex.Add(time);
+                    }
+                    else if (code.StartsWith(ITEM_CODE_START_STRING))
+                    {
+                        ushort item = Convert.ToUInt16(code.Substring(ITEM_CODE_START_STRING.Length, 4), 16);
+                        hex.Add(ITEM_CODE);
+                        hex.Add(item);
+                    }
+                    else
+                    {
+                        // It's a normal code
+                        hex.Add(StringToHex(code));
+                    }
+
+                    s += code.Length - 1;
+                }
+                //else if (currentCharacter == "\\")
+                //{
+                //    if (s > text.Length - 2) throw new FormatException($"Found \"\\\" character at the end of the text, so there's no room to contain a full code in the format \"\\X\". Text:\n\n{text}");
+                //    string code = text.Substring(s, 2);
+
+                //    hex.Add(StringToHex(code));
+
+                //    s++;
+                //}
+                else
+                {
+                    hex.Add(StringToHex(currentCharacter));
+                }
+            }
+
+            return hex.ToArray();
         }
 
         string ProcessValue(string value)

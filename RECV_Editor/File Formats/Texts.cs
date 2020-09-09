@@ -10,11 +10,16 @@ namespace RECV_Editor.File_Formats
         const ushort TEXT_END = 0xFFFF;
         const ushort BLOCK_END = 0xFF01;
 
-        const string TEXT_END_STRING = "\n[TEXT END]----------------------------------------------\n";
-        const string BLOCK_END_STRING = "[BLOCK END]---------------------------------------------\n";
+        const string TEXT_END_STRING = "[TEXT END]----------------------------------------------";
+        const string BLOCK_END_STRING = "[BLOCK END]---------------------------------------------";
 
         public static string Extract(string inputFile, Table table)
         {
+            if (string.IsNullOrEmpty(inputFile))
+            {
+                throw new ArgumentNullException(nameof(inputFile));
+            }
+
             if (!File.Exists(inputFile))
             {
                 throw new FileNotFoundException($"File \"{inputFile}\" does not exist!", inputFile);
@@ -28,6 +33,11 @@ namespace RECV_Editor.File_Formats
 
         public static string Extract(Stream textStream, Table table)
         {
+            if (textStream == null)
+            {
+                throw new ArgumentNullException(nameof(textStream));
+            }
+
             if (table == null)
             {
                 throw new ArgumentNullException(nameof(table));
@@ -87,7 +97,7 @@ namespace RECV_Editor.File_Formats
                     }
 
                     sb.Append(table.GetString(characters.ToArray()));
-                    sb.Append(TEXT_END_STRING);
+                    sb.Append($"\n{TEXT_END_STRING}\n");
                 }
 
                 // Make sure of being at the end of the text data block
@@ -97,10 +107,89 @@ namespace RECV_Editor.File_Formats
                     Logger.Append($"Expected end of block but 0x{value:X} found at 0x{(textStream.Position - 2):X}. This could mean that there are some unused contents at the end of this file.", Logger.LogTypes.Warning);
                 }
 
-                sb.Append(BLOCK_END_STRING);
+                sb.Append($"{BLOCK_END_STRING}\n");
             }
 
             return sb.ToString();
+        }
+
+        public static void Insert(string inputText, Stream outputStream, Table table)
+        {
+            if (string.IsNullOrEmpty(inputText))
+            {
+                throw new ArgumentNullException(nameof(inputText));
+            }
+
+            if (outputStream == null)
+            {
+                throw new ArgumentNullException(nameof(outputStream));
+            }
+
+            if (table == null)
+            {
+                throw new ArgumentNullException(nameof(table));
+            }
+
+            StringBuilder sb = new StringBuilder();
+            List<uint> textPositions = new List<uint>();
+            uint currentTextPosition = 0;
+
+            using (MemoryStream ms = new MemoryStream())
+            {
+                using (StringReader reader = new StringReader(inputText))
+                using (BinaryWriter bw = new BinaryWriter(ms, Encoding.UTF8, true))
+                {
+                    for (; ; )
+                    {
+                        string line = reader.ReadLine();
+                        if (line == null) throw new EndOfStreamException("Reached end of text data without finding an end of block code.");
+
+                        if (line == BLOCK_END_STRING)
+                        {
+                            bw.Write(BLOCK_END);
+                            break;
+                        }
+
+                        if (line == TEXT_END_STRING)
+                        {
+                            // Remove the "\n" from the previous line
+                            sb.Length--;
+
+                            ushort[] hex = table.GetHex(sb.ToString());
+
+                            for (int h = 0; h < hex.Length; h++)
+                            {
+                                bw.Write(hex[h]);
+                            }
+
+                            bw.Write(TEXT_END);
+
+                            sb.Clear();
+
+                            textPositions.Add(currentTextPosition);
+                            currentTextPosition = (uint)ms.Position;
+                        }
+                        else
+                        {
+                            sb.Append(line);
+                            sb.Append("\n");
+                        }
+                    }
+                }
+
+                using (BinaryWriter bw = new BinaryWriter(outputStream, Encoding.UTF8, true))
+                {
+                    bw.Write((uint)textPositions.Count);
+
+                    for (int tp = 0; tp < textPositions.Count; tp++)
+                    {
+                        bw.Write((uint)(textPositions[tp] + 4 + (4 * textPositions.Count)));
+                    }
+
+                    ms.Position = 0;
+                    ms.CopyTo(outputStream);
+                }
+            }
         }
     }
 }

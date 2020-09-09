@@ -23,6 +23,16 @@ namespace RECV_Editor.File_Formats
 
         public static void Extract(Stream aldStream, string outputFolder, Table table)
         {
+            if (aldStream == null)
+            {
+                throw new ArgumentNullException(nameof(aldStream));
+            }
+
+            if (string.IsNullOrEmpty(outputFolder))
+            {
+                throw new ArgumentNullException(nameof(outputFolder));
+            }
+
             if (table == null)
             {
                 throw new ArgumentNullException(nameof(table));
@@ -45,7 +55,7 @@ namespace RECV_Editor.File_Formats
                         string texts = Texts.Extract(blockStream, table);
 
                         // Write all the texts in the block to a txt file
-                        string outputFile = Path.Combine(outputFolder, $"{currentBlock: 00}.txt");
+                        string outputFile = Path.Combine(outputFolder, $"{currentBlock:00}.txt");
                         File.WriteAllText(outputFile, texts);
                     }
 
@@ -57,6 +67,64 @@ namespace RECV_Editor.File_Formats
                     aldStream.Position -= 2;
                     currentBlock++;
                 }
+            }
+        }
+
+        public static void Insert(string inputFolder, string outputAld, Table table)
+        {
+            if (string.IsNullOrEmpty(outputAld))
+            {
+                throw new ArgumentNullException(nameof(outputAld));
+            }
+
+            using (FileStream aldStream = File.Create(outputAld))
+            {
+                Insert(inputFolder, aldStream, table);
+            }
+        }
+
+        public static void Insert(string inputFolder, Stream aldStream, Table table)
+        {
+            if (string.IsNullOrEmpty(inputFolder))
+            {
+                throw new ArgumentNullException(nameof(inputFolder));
+            }
+
+            if (!Directory.Exists(inputFolder))
+            {
+                throw new DirectoryNotFoundException($"Directory \"{inputFolder}\" does not exist!");
+            }
+
+            if (aldStream == null)
+            {
+                throw new ArgumentNullException(nameof(aldStream));
+            }
+
+            if (table == null)
+            {
+                throw new ArgumentNullException(nameof(table));
+            }
+
+            string[] textFilesNames = Directory.GetFiles(inputFolder, "*.txt");
+
+            using (BinaryWriter bw = new BinaryWriter(aldStream, Encoding.UTF8, true))
+            {
+                for (int t = 0; t < textFilesNames.Length; t++)
+                {
+                    string text = File.ReadAllText(textFilesNames[t]);
+
+                    using (MemoryStream ms = new MemoryStream())
+                    {
+                        Texts.Insert(text, ms, table);
+
+                        bw.Write((uint)ms.Length);
+
+                        ms.Position = 0;
+                        ms.CopyTo(aldStream);
+                    }
+                }
+
+                bw.Write(0xFFFFFFFF);
             }
         }
     }
