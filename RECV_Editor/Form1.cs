@@ -4,13 +4,15 @@ using RECV_Editor.File_Formats;
 using System;
 using System.IO;
 using System.Threading.Tasks;
-using System.Web.Script.Serialization;
 using System.Windows.Forms;
 
 namespace RECV_Editor
 {
     public partial class Form1 : Form
     {
+        Settings settings;
+        const string SETTINGS_FILE = "Settings.json";
+
         bool isProcessRunning;
 
         public Form1()
@@ -24,7 +26,8 @@ namespace RECV_Editor
         {
             Logger.Initialize();
 
-            LoadSettings();
+            settings = new Settings(SETTINGS_FILE);
+            if (!settings.Load()) InitializeSettings();
 
             SetProcessRunning(false);
             UpdateStatus(new RECV.ProgressInfo("Ready...", 0, 100));
@@ -51,9 +54,9 @@ namespace RECV_Editor
             try
             {
 #endif
-            Table table = new Table(settings.TableFile);
+            Table table = new Table(settings.Data.TableFile);
             Progress<RECV.ProgressInfo> progress = new Progress<RECV.ProgressInfo>(UpdateStatus);
-            await Task.Run(() => RECV.ExtractAll(settings.OriginalGameRootFolder, settings.ProjectFolder, table, progress));
+            await Task.Run(() => RECV.ExtractAll(settings.Data.OriginalGameRootFolder, settings.Data.ProjectFolder, table, progress));
 #if !DEBUG
             }
             catch (Exception ex)
@@ -74,9 +77,9 @@ namespace RECV_Editor
             try
             {
 #endif
-            Table table = new Table(settings.TableFile);
+            Table table = new Table(settings.Data.TableFile);
             Progress<RECV.ProgressInfo> progress = new Progress<RECV.ProgressInfo>(UpdateStatus);
-            await Task.Run(() => RECV.InsertAll(settings.ProjectFolder, settings.GeneratedGameRootFolder, table, progress));
+            await Task.Run(() => RECV.InsertAll(settings.Data.ProjectFolder, settings.Data.GeneratedGameRootFolder, table, progress));
 #if !DEBUG
             }
             catch (Exception ex)
@@ -91,7 +94,7 @@ namespace RECV_Editor
 
         private void DebugExtractButton_Click(object sender, EventArgs e)
         {
-            Table table = new Table(settings.TableFile);
+            Table table = new Table(settings.Data.TableFile);
 
             ALD.Extract(@"D:\Romhacking\Proyectos\Resident Evil Code Veronica\ENG\SYSMES1.ALD", @"D:\Romhacking\Proyectos\Resident Evil Code Veronica\Project\TEST", table);
             ALD.Insert(@"D:\Romhacking\Proyectos\Resident Evil Code Veronica\Project\TEST", @"D:\Romhacking\Proyectos\Resident Evil Code Veronica\Project\TEST.ALD", table);
@@ -117,127 +120,8 @@ namespace RECV_Editor
 
             File.WriteAllBytes(prsFile + ".unc", uncompressedPrsData);
 
-            Table table = new Table(settings.TableFile);
+            Table table = new Table(settings.Data.TableFile);
             RDX.Extract(uncompressedPrsData, prsFile + "_output", table);
-        }
-
-        #endregion
-
-        #region Settings
-
-        const string SETTINGS_FILE = "Settings.json";
-
-        Settings settings;
-
-        void LoadSettings()
-        {
-            if (!File.Exists(SETTINGS_FILE))
-            {
-                Logger.Append("Settings file not found. Initializing settings...");
-                InitializeSettings();
-            }
-            else
-            {
-                Logger.Append("Loading settings file...");
-
-                JavaScriptSerializer jsSerializer = new JavaScriptSerializer();
-                settings = jsSerializer.Deserialize<Settings>(File.ReadAllText(SETTINGS_FILE));
-
-                if (!settings.CheckIfValid())
-                {
-                    Logger.Append("Settings file contains invalid entries. Initializing settings...");
-                    InitializeSettings();
-                }
-            }
-
-            Logger.Append("Settings have been loaded.");
-        }
-
-        void InitializeSettings()
-        {
-            MessageBox.Show("This is the first time the program is run or the settings are invalid. Please configure some folder paths for the program to work properly.", "Initialize settings", MessageBoxButtons.OK, MessageBoxIcon.Information);
-
-            settings = new Settings();
-            CommonOpenFileDialog oDlg = new CommonOpenFileDialog();
-
-            // Original Game Root Folder
-
-            oDlg.IsFolderPicker = true;
-            oDlg.Title = "Select the root folder of Resident Evil Code Veronica (PAL) for PS2";
-            if (oDlg.ShowDialog() != CommonFileDialogResult.Ok)
-            {
-                MessageBox.Show("It is necessary to initialize the settings, so the program will now close.", "Initialize settings", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
-                Close();
-                return;
-            }
-
-            settings.OriginalGameRootFolder = oDlg.FileName;
-
-            // Generated Game Root Folder
-
-            oDlg.Title = "Select the folder where the game's generated files will be saved";
-            if (oDlg.ShowDialog() != CommonFileDialogResult.Ok)
-            {
-                MessageBox.Show("It is necessary to initialize the settings, so the program will now close.", "Initialize settings", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
-                Close();
-                return;
-            }
-
-            settings.GeneratedGameRootFolder = oDlg.FileName;
-
-            // Extraction folder
-
-            oDlg.Title = "Select your project folder where you want to extract everything";
-            if (oDlg.ShowDialog() != CommonFileDialogResult.Ok)
-            {
-                Close();
-                return;
-            }
-
-            settings.ProjectFolder = oDlg.FileName;
-
-            // Table file
-
-            oDlg.Title = "Select the table file";
-            oDlg.IsFolderPicker = false;
-            oDlg.Filters.Add(new CommonFileDialogFilter("Table files (*.tbl)", "*.tbl"));
-            oDlg.Filters.Add(new CommonFileDialogFilter("Text files (.txt)", "*.txt"));
-            oDlg.Filters.Add(new CommonFileDialogFilter("All files (*.*)", "*.*"));
-            if (oDlg.ShowDialog() != CommonFileDialogResult.Ok)
-            {
-                Close();
-                return;
-            }
-
-            settings.TableFile = oDlg.FileName;
-
-            // Save
-
-            SaveSettings();
-        }
-
-        void SaveSettings()
-        {
-            JavaScriptSerializer jsSerializer = new JavaScriptSerializer();
-            File.WriteAllText(SETTINGS_FILE, jsSerializer.Serialize(settings));
-        }
-
-        class Settings
-        {
-            public string OriginalGameRootFolder { get; set; }
-            public string GeneratedGameRootFolder { get; set; }
-            public string ProjectFolder { get; set; }
-            public string TableFile { get; set; }
-
-            public bool CheckIfValid()
-            {
-                if (!Directory.Exists(OriginalGameRootFolder)) return false;
-                if (!Directory.Exists(GeneratedGameRootFolder)) return false;
-                if (!Directory.Exists(ProjectFolder)) return false;
-                if (!File.Exists(TableFile)) return false;
-
-                return true;
-            }
         }
 
         #endregion
@@ -258,6 +142,68 @@ namespace RECV_Editor
             StatusLabel.Text = progressInfo.statusText;
             StatusProgressBar.Value = progressInfo.progressValue;
             StatusProgressBar.Maximum = progressInfo.maxProgressValue;
+        }
+
+        void InitializeSettings()
+        {
+            MessageBox.Show("This is the first time the program is run or the settings are invalid. Please configure some folder paths for the program to work properly.", "Initialize settings", MessageBoxButtons.OK, MessageBoxIcon.Information);
+
+            CommonOpenFileDialog oDlg = new CommonOpenFileDialog();
+
+            // Original Game Root Folder
+
+            oDlg.IsFolderPicker = true;
+            oDlg.Title = "Select the root folder of Resident Evil Code Veronica (PAL) for PS2";
+            if (oDlg.ShowDialog() != CommonFileDialogResult.Ok)
+            {
+                MessageBox.Show("It is necessary to initialize the settings, so the program will now close.", "Initialize settings", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                Close();
+                return;
+            }
+
+            settings.Data.OriginalGameRootFolder = oDlg.FileName;
+
+            // Generated Game Root Folder
+
+            oDlg.Title = "Select the folder where the game's generated files will be saved";
+            if (oDlg.ShowDialog() != CommonFileDialogResult.Ok)
+            {
+                MessageBox.Show("It is necessary to initialize the settings, so the program will now close.", "Initialize settings", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                Close();
+                return;
+            }
+
+            settings.Data.GeneratedGameRootFolder = oDlg.FileName;
+
+            // Extraction folder
+
+            oDlg.Title = "Select your project folder where you want to extract everything";
+            if (oDlg.ShowDialog() != CommonFileDialogResult.Ok)
+            {
+                Close();
+                return;
+            }
+
+            settings.Data.ProjectFolder = oDlg.FileName;
+
+            // Table file
+
+            oDlg.Title = "Select the table file";
+            oDlg.IsFolderPicker = false;
+            oDlg.Filters.Add(new CommonFileDialogFilter("Table files (*.tbl)", "*.tbl"));
+            oDlg.Filters.Add(new CommonFileDialogFilter("Text files (.txt)", "*.txt"));
+            oDlg.Filters.Add(new CommonFileDialogFilter("All files (*.*)", "*.*"));
+            if (oDlg.ShowDialog() != CommonFileDialogResult.Ok)
+            {
+                Close();
+                return;
+            }
+
+            settings.Data.TableFile = oDlg.FileName;
+
+            // Save
+
+            settings.Save();
         }
     }
 }
