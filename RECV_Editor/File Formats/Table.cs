@@ -17,9 +17,6 @@ namespace RECV_Editor.File_Formats
         readonly Dictionary<ushort, string> hexToString = null;
         readonly Dictionary<string, ushort> stringToHex = null;
 
-        readonly StringBuilder sb;
-        readonly List<ushort> hex;
-
         public Table(string tableFile)
         {
             if (!File.Exists(tableFile))
@@ -29,9 +26,6 @@ namespace RECV_Editor.File_Formats
 
             hexToString = new Dictionary<ushort, string>();
             stringToHex = new Dictionary<string, ushort>();
-
-            sb = new StringBuilder();
-            hex = new List<ushort>();
 
             string[] lines = File.ReadAllLines(tableFile);
 
@@ -91,7 +85,7 @@ namespace RECV_Editor.File_Formats
 
         public string GetString(ushort[] hexData)
         {
-            sb.Clear();
+            StringBuilder sb = new StringBuilder();
 
             for (int h = 0; h < hexData.Length; h++)
             {
@@ -119,7 +113,7 @@ namespace RECV_Editor.File_Formats
 
         public ushort[] GetHex(string text)
         {
-            hex.Clear();
+            List<ushort> hex = new List<ushort>();
 
             for (int s = 0; s < text.Length; s++)
             {

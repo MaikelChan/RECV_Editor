@@ -225,6 +225,7 @@ namespace RECV_Editor
             isProcessRunning = value;
 
             ExtractAllButton.Enabled = !value;
+            InsertAllButton.Enabled = !value;
             DebugGroup.Enabled = !value;
             DebugExtractButton.Enabled = !value;
             DebugDecompressButton.Enabled = !value;

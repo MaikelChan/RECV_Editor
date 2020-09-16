@@ -89,8 +89,13 @@ namespace RECV_Editor
             currentProgressValue++;
             int currentRdxFile = 1;
 
+#if MULTITHREADING
             Parallel.For(0, rdxFiles.Length, (f) =>
             {
+#else
+            for (int f = 0; f < rdxFiles.Length; f++)
+            {
+#endif
                 Logger.Append($"Extracting RDX file \"{rdxFiles[f]}\"...");
                 progress?.Report(new ProgressInfo($"Extracting RDX files... ({currentRdxFile++}/{rdxFiles.Length})", currentProgressValue, MAX_PROGRESS_STEPS));
 
@@ -102,7 +107,11 @@ namespace RECV_Editor
 
                 RDX.Results result = RDX.Extract(rdxUncompressedData, rdxFiles[f], table);
                 if (result == RDX.Results.NotValidRdxFile) Logger.Append($"\"{rdxFiles[f]}\" is not a valid RDX file. Ignoring.", Logger.LogTypes.Warning);
+#if MULTITHREADING
             });
+#else
+            }
+#endif
 
             progress?.Report(new ProgressInfo("Done!", ++currentProgressValue, MAX_PROGRESS_STEPS));
             Logger.Append("Extract all process has finished. ------------------------------------------------------------------");
