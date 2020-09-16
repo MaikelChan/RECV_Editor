@@ -29,18 +29,36 @@ namespace RECV_Editor
             }
         }
 
-        const int MAX_PROGRESS_STEPS = 4;
+        const int MAX_EXTRACTION_PROGRESS_STEPS = 4;
+        const int MAX_INSERTION_PROGRESS_STEPS = 2;
 
         public static void ExtractAll(string inputFolder, string outputFolder, Table table, IProgress<ProgressInfo> progress)
         {
-            int currentProgressValue = 0;
-
-            Logger.Append("Extract all process has begun. ---------------------------------------------------------------------");
+            if (string.IsNullOrEmpty(inputFolder))
+            {
+                throw new ArgumentNullException(nameof(inputFolder));
+            }
 
             if (!Directory.Exists(inputFolder))
             {
                 throw new DirectoryNotFoundException($"Directory \"{inputFolder}\" does not exist!");
             }
+
+            if (string.IsNullOrEmpty(outputFolder))
+            {
+                throw new ArgumentNullException(nameof(outputFolder));
+            }
+
+            if (table == null)
+            {
+                throw new ArgumentNullException(nameof(table));
+            }
+
+            // Begin process
+
+            int currentProgressValue = 0;
+
+            Logger.Append("Extract all process has begun. ---------------------------------------------------------------------");
 
             // Create output ENG folder
 
@@ -61,7 +79,7 @@ namespace RECV_Editor
             }
 
             Logger.Append($"Extracting \"{SYSMES1}\"...");
-            progress?.Report(new ProgressInfo($"Extracting \"{ENG_SYSMES1_ALD_PATH}\"...", ++currentProgressValue, MAX_PROGRESS_STEPS));
+            progress?.Report(new ProgressInfo($"Extracting \"{ENG_SYSMES1_ALD_PATH}\"...", ++currentProgressValue, MAX_EXTRACTION_PROGRESS_STEPS));
 
             ALD.Extract(SYSMES1, Path.Combine(outputFolder, ENG_SYSMES1_ALD_PATH), table);
 
@@ -75,11 +93,11 @@ namespace RECV_Editor
             }
 
             Logger.Append($"Extracting \"{RDX_LNK1}\"...");
-            progress?.Report(new ProgressInfo($"Extracting \"{ENG_RDX_LNK1_AFS_PATH}\"...", ++currentProgressValue, MAX_PROGRESS_STEPS));
+            progress?.Report(new ProgressInfo($"Extracting \"{ENG_RDX_LNK1_AFS_PATH}\"...", ++currentProgressValue, MAX_EXTRACTION_PROGRESS_STEPS));
 
             string engRDX_LNK1OutputPath = Path.Combine(outputFolder, ENG_RDX_LNK1_AFS_PATH);
             AFS.NotifyProgress += AFS_NotifyProgress;
-            AFS.ExtractAFS(RDX_LNK1, Path.Combine(outputFolder, engRDX_LNK1OutputPath));
+            AFS.ExtractAFS(RDX_LNK1, engRDX_LNK1OutputPath);
             AFS.NotifyProgress -= AFS_NotifyProgress;
 
             // Decompress files in RDX_LNK1
@@ -97,7 +115,7 @@ namespace RECV_Editor
             {
 #endif
                 Logger.Append($"Extracting RDX file \"{rdxFiles[f]}\"...");
-                progress?.Report(new ProgressInfo($"Extracting RDX files... ({currentRdxFile++}/{rdxFiles.Length})", currentProgressValue, MAX_PROGRESS_STEPS));
+                progress?.Report(new ProgressInfo($"Extracting RDX files... ({currentRdxFile++}/{rdxFiles.Length})", currentProgressValue, MAX_EXTRACTION_PROGRESS_STEPS));
 
                 byte[] rdxData = File.ReadAllBytes(rdxFiles[f]);
                 byte[] rdxUncompressedData = PRS.Decompress(rdxData);
@@ -113,7 +131,9 @@ namespace RECV_Editor
             }
 #endif
 
-            progress?.Report(new ProgressInfo("Done!", ++currentProgressValue, MAX_PROGRESS_STEPS));
+            // Finish process
+
+            progress?.Report(new ProgressInfo("Done!", ++currentProgressValue, MAX_EXTRACTION_PROGRESS_STEPS));
             Logger.Append("Extract all process has finished. ------------------------------------------------------------------");
 
             GC.Collect();
@@ -121,7 +141,64 @@ namespace RECV_Editor
 
         public static void InsertAll(string inputFolder, string outputFolder, Table table, IProgress<ProgressInfo> progress)
         {
+            if (string.IsNullOrEmpty(inputFolder))
+            {
+                throw new ArgumentNullException(nameof(inputFolder));
+            }
 
+            if (!Directory.Exists(inputFolder))
+            {
+                throw new DirectoryNotFoundException($"Directory \"{inputFolder}\" does not exist!");
+            }
+
+            if (string.IsNullOrEmpty(outputFolder))
+            {
+                throw new ArgumentNullException(nameof(outputFolder));
+            }
+
+            if (table == null)
+            {
+                throw new ArgumentNullException(nameof(table));
+            }
+
+            // Begin process
+
+            int currentProgressValue = 0;
+
+            Logger.Append("Insert all process has begun. ----------------------------------------------------------------------");
+
+            // Delete existing output folder if it exists
+
+            if (Directory.Exists(outputFolder))
+            {
+                Logger.Append($"Deleting \"{outputFolder}\" folder...");
+                Directory.Delete(outputFolder, true);
+            }
+
+            // Create output folder
+
+            string outputEngFolder = Path.Combine(outputFolder, ENG_PATH);
+            if (!Directory.Exists(outputEngFolder))
+            {
+                Logger.Append($"Creating \"{outputEngFolder}\" folder...");
+                Directory.CreateDirectory(outputEngFolder);
+            }
+
+            // Generate SYSMES1.ALD
+
+            string SYSMES1 = Path.Combine(outputFolder, ENG_SYSMES1_ALD_PATH);
+
+            Logger.Append($"Generating \"{SYSMES1}\"...");
+            progress?.Report(new ProgressInfo($"Generating \"{ENG_SYSMES1_ALD_PATH}\"...", ++currentProgressValue, MAX_INSERTION_PROGRESS_STEPS));
+
+            ALD.Insert(Path.Combine(inputFolder, ENG_SYSMES1_ALD_PATH), SYSMES1, table);
+
+            // Finish process
+
+            progress?.Report(new ProgressInfo("Done!", ++currentProgressValue, MAX_INSERTION_PROGRESS_STEPS));
+            Logger.Append("Insert all process has finished. -------------------------------------------------------------------");
+
+            GC.Collect();
         }
 
         static void AFS_NotifyProgress(AFS.NotificationTypes type, string message)
