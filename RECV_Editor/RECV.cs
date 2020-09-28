@@ -30,7 +30,7 @@ namespace RECV_Editor
         }
 
         const int MAX_EXTRACTION_PROGRESS_STEPS = 4;
-        const int MAX_INSERTION_PROGRESS_STEPS = 2;
+        const int MAX_INSERTION_PROGRESS_STEPS = 4;
 
         public static void ExtractAll(string inputFolder, string outputFolder, Table table, IProgress<ProgressInfo> progress)
         {
@@ -139,7 +139,7 @@ namespace RECV_Editor
             GC.Collect();
         }
 
-        public static void InsertAll(string inputFolder, string outputFolder, Table table, IProgress<ProgressInfo> progress)
+        public static void InsertAll(string inputFolder, string outputFolder, string originalDataFolder, Table table, IProgress<ProgressInfo> progress)
         {
             if (string.IsNullOrEmpty(inputFolder))
             {
@@ -154,6 +154,16 @@ namespace RECV_Editor
             if (string.IsNullOrEmpty(outputFolder))
             {
                 throw new ArgumentNullException(nameof(outputFolder));
+            }
+
+            if (string.IsNullOrEmpty(originalDataFolder))
+            {
+                throw new ArgumentNullException(nameof(originalDataFolder));
+            }
+
+            if (!Directory.Exists(originalDataFolder))
+            {
+                throw new DirectoryNotFoundException($"Directory \"{originalDataFolder}\" does not exist!");
             }
 
             if (table == null)
@@ -192,6 +202,52 @@ namespace RECV_Editor
             progress?.Report(new ProgressInfo($"Generating \"{ENG_SYSMES1_ALD_PATH}\"...", ++currentProgressValue, MAX_INSERTION_PROGRESS_STEPS));
 
             ALD.Insert(Path.Combine(inputFolder, ENG_SYSMES1_ALD_PATH), SYSMES1, table);
+
+            // Extract original AFS files
+
+            string originalRDX_LNK1 = Path.Combine(originalDataFolder, ENG_RDX_LNK1_AFS_PATH);
+
+            if (!File.Exists(originalRDX_LNK1))
+            {
+                throw new FileNotFoundException($"File \"{originalRDX_LNK1}\" does not exist!", originalRDX_LNK1);
+            }
+
+            Logger.Append($"Extracting \"{originalRDX_LNK1}\"...");
+            progress?.Report(new ProgressInfo($"Extracting \"{ENG_RDX_LNK1_AFS_PATH}\"...", ++currentProgressValue, MAX_INSERTION_PROGRESS_STEPS));
+
+            string original_RDX_LNK1_folder = Path.Combine(outputFolder, ENG_RDX_LNK1_AFS_PATH);
+            AFS.NotifyProgress += AFS_NotifyProgress;
+            AFS.ExtractAFS(originalRDX_LNK1, original_RDX_LNK1_folder);
+            AFS.NotifyProgress -= AFS_NotifyProgress;
+
+            // Generate RDX files
+
+            string RDX_LNK1_folder = Path.Combine(inputFolder, ENG_RDX_LNK1_AFS_PATH);
+
+            if (!Directory.Exists(RDX_LNK1_folder))
+            {
+                throw new DirectoryNotFoundException($"Directory \"{RDX_LNK1_folder}\" does not exist!");
+            }
+
+            string[] rdxPaths = Directory.GetDirectories(RDX_LNK1_folder);
+            string[] originalRdxFiles = Directory.GetFiles(original_RDX_LNK1_folder);
+
+            if (rdxPaths.Length != originalRdxFiles.Length)
+            {
+                throw new InvalidDataException($"There should be {originalRdxFiles.Length} RDX folder, but found {rdxPaths.Length} instead in \"{RDX_LNK1_folder}\"");
+            }
+
+            for (int r = 0; r < rdxPaths.Length; r++)
+            {
+                byte[] rdxData = File.ReadAllBytes(originalRdxFiles[r]);
+                byte[] rdxUncompressedData = PRS.Decompress(rdxData);
+                File.WriteAllBytes(originalRdxFiles[r], rdxUncompressedData);
+
+                RDX.Insert(rdxPaths[r], originalRdxFiles[r], table);
+            }
+
+            Logger.Append($"Extracting \"{RDX_LNK1_folder}\"...");
+            progress?.Report(new ProgressInfo($"Extracting \"{ENG_RDX_LNK1_AFS_PATH}\"...", ++currentProgressValue, MAX_INSERTION_PROGRESS_STEPS));
 
             // Finish process
 

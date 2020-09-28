@@ -82,7 +82,7 @@ namespace RECV_Editor
 #endif
             Table table = new Table(settings.Data.TableFile);
             Progress<RECV.ProgressInfo> progress = new Progress<RECV.ProgressInfo>(UpdateStatus);
-            await Task.Run(() => RECV.InsertAll(settings.Data.ProjectFolder, settings.Data.GeneratedGameRootFolder, table, progress));
+            await Task.Run(() => RECV.InsertAll(settings.Data.ProjectFolder, settings.Data.GeneratedGameRootFolder, settings.Data.OriginalGameRootFolder, table, progress));
 #if !DEBUG
             }
             catch (Exception ex)
