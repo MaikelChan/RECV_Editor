@@ -27,7 +27,10 @@ namespace RECV_Editor
             Logger.Initialize();
 
             settings = new Settings(SETTINGS_FILE);
-            if (!settings.Load()) InitializeSettings();
+            if (!settings.Load())
+            {
+                if (!InitializeSettings()) return;
+            }
 
             SetProcessRunning(false);
             UpdateStatus(new RECV.ProgressInfo("Ready...", 0, 100));
@@ -144,7 +147,7 @@ namespace RECV_Editor
             StatusProgressBar.Maximum = progressInfo.maxProgressValue;
         }
 
-        void InitializeSettings()
+        bool InitializeSettings()
         {
             MessageBox.Show("This is the first time the program is run or the settings are invalid. Please configure some folder paths for the program to work properly.", "Initialize settings", MessageBoxButtons.OK, MessageBoxIcon.Information);
 
@@ -158,7 +161,7 @@ namespace RECV_Editor
             {
                 MessageBox.Show("It is necessary to initialize the settings, so the program will now close.", "Initialize settings", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
                 Close();
-                return;
+                return false;
             }
 
             settings.Data.OriginalGameRootFolder = oDlg.FileName;
@@ -170,7 +173,7 @@ namespace RECV_Editor
             {
                 MessageBox.Show("It is necessary to initialize the settings, so the program will now close.", "Initialize settings", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
                 Close();
-                return;
+                return false;
             }
 
             settings.Data.GeneratedGameRootFolder = oDlg.FileName;
@@ -181,7 +184,7 @@ namespace RECV_Editor
             if (oDlg.ShowDialog() != CommonFileDialogResult.Ok)
             {
                 Close();
-                return;
+                return false;
             }
 
             settings.Data.ProjectFolder = oDlg.FileName;
@@ -196,7 +199,7 @@ namespace RECV_Editor
             if (oDlg.ShowDialog() != CommonFileDialogResult.Ok)
             {
                 Close();
-                return;
+                return false;
             }
 
             settings.Data.TableFile = oDlg.FileName;
@@ -204,6 +207,8 @@ namespace RECV_Editor
             // Save
 
             settings.Save();
+
+            return true;
         }
     }
 }
