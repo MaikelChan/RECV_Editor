@@ -203,7 +203,7 @@ namespace RECV_Editor
 
             ALD.Insert(Path.Combine(inputFolder, ENG_SYSMES1_ALD_PATH), SYSMES1, table);
 
-            // Extract original AFS files
+            // Extract original RDX_LNK1 file
 
             string originalRDX_LNK1 = Path.Combine(originalDataFolder, ENG_RDX_LNK1_AFS_PATH);
 

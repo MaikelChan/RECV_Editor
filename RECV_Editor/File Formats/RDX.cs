@@ -82,9 +82,9 @@ namespace RECV_Editor.File_Formats
                 rdxStream.Position = textDataBlockPosition;
 
                 uint[] subBlockPositions = new uint[16];
-                for (int sbp = 0; sbp < 16; sbp++)
+                for (int sb = 0; sb < 16; sb++)
                 {
-                    subBlockPositions[sbp] = br.ReadUInt32();
+                    subBlockPositions[sb] = br.ReadUInt32();
                 }
 
                 // We are only interested in subBlock 14, which contains texts
@@ -186,76 +186,251 @@ namespace RECV_Editor.File_Formats
 
             // Gather data we need to preserve from the original RDX
 
-            //using (BinaryReader br = new BinaryReader(rdxStream, Encoding.UTF8, true))
-            //{
-            //    uint magic = br.ReadUInt32();
-            //    if (magic != MAGIC)
-            //    {
-            //        throw new InvalidDataException("Not a valid RDX file.");
-            //    }
+            Data data = new Data(rdxStream);
 
-            //    rdxStream.Position = 0x10;
 
-            //    uint textDataBlockPosition = br.ReadUInt32();
-            //    uint unk1DataBlockPosition = br.ReadUInt32();
-            //    uint unk2DataBlockPosition = br.ReadUInt32();
-            //    uint unk3DataBlockPosition = br.ReadUInt32();
-            //    uint textureDataBlockPosition = br.ReadUInt32();
 
-            //    rdxStream.Position = 0x60;
+            return;
 
-            //    byte[] authorName = new byte[32];
-            //    rdxStream.Read(authorName, 0, 32);
+            using (BinaryReader br = new BinaryReader(rdxStream, Encoding.UTF8, true))
+            {
+                uint magic = br.ReadUInt32();
+                if (magic != MAGIC)
+                {
+                    throw new InvalidDataException("Not a valid RDX file.");
+                }
 
-            //    // Start reading the text block data
+                rdxStream.Position = 0x10;
 
-            //    rdxStream.Position = textDataBlockPosition;
+                uint textDataBlockPosition = br.ReadUInt32();
+                uint unk1DataBlockPosition = br.ReadUInt32();
+                uint unk2DataBlockPosition = br.ReadUInt32();
+                uint unk3DataBlockPosition = br.ReadUInt32();
+                uint textureDataBlockPosition = br.ReadUInt32();
 
-            //    uint[] subBlockPositions = new uint[16];
-            //    for (int sbp = 0; sbp < 16; sbp++)
-            //    {
-            //        subBlockPositions[sbp] = br.ReadUInt32();
-            //    }
+                rdxStream.Position = 0x60;
 
-            //    // We are only interested in subBlock 14, which contains texts
+                byte[] authorName = new byte[32];
+                rdxStream.Read(authorName, 0, 32);
 
-            //    if (subBlockPositions[14] != 0)
-            //    {
-            //        rdxStream.Position = subBlockPositions[14];
+                // Start reading the text block data
 
-            //        using (SubStream textsStream = new SubStream(rdxStream, 0, rdxStream.Length - rdxStream.Position, true))
-            //        {
-            //            string texts = Texts.Extract(textsStream, table);
-            //            File.WriteAllText(Path.Combine(outputFolder, STRINGS_FILE_NAME), texts);
-            //        }
-            //    }
+                rdxStream.Position = textDataBlockPosition;
 
-            //    // Read texture block data
+                uint[] subBlockPositions = new uint[16];
+                for (int sb = 0; sb < 16; sb++)
+                {
+                    subBlockPositions[sb] = br.ReadUInt32();
+                }
 
-            //    rdxStream.Position = textureDataBlockPosition;
+                byte[][] subBlockData = new byte[16][];
+                for (int sb = 0; sb < 16; sb++)
+                {
+                    if (subBlockPositions[sb] == 0) continue;
 
-            //    uint numberOfTextures = br.ReadUInt32();
+                    rdxStream.Position = subBlockPositions[sb];
 
-            //    uint[] texturePositions = new uint[numberOfTextures];
-            //    for (int tp = 0; tp < numberOfTextures; tp++)
-            //    {
-            //        texturePositions[tp] = br.ReadUInt32();
-            //    }
+                    uint subBlockLength;
+                    if (sb == 15) subBlockLength = unk1DataBlockPosition - subBlockPositions[sb];
+                    else subBlockLength = subBlockPositions[sb + 1] - subBlockPositions[sb];
 
-            //    for (int tp = 0; tp < numberOfTextures; tp++)
-            //    {
-            //        rdxStream.Position = texturePositions[tp];
+                    subBlockData[sb] = new byte[subBlockLength];
+                    rdxStream.Read(subBlockData[sb], 0, (int)subBlockLength);
+                }
 
-            //        uint textureSize;
-            //        if (tp < numberOfTextures - 1) textureSize = texturePositions[tp + 1] - texturePositions[tp];
-            //        else textureSize = (uint)rdxStream.Length - texturePositions[tp];
+                // We are only interested in subBlock 14, which contains texts
 
-            //        using (SubStream tm2Stream = new SubStream(rdxStream, 0, textureSize, true))
-            //        {
-            //            TM2.Extract(rdxStream, Path.Combine(outputFolder, $"TIM2-{tp:0000}"));
-            //        }
-            //    }
-            //}
+                if (subBlockPositions[14] != 0)
+                {
+                    string texts = File.ReadAllText(Path.Combine(inputFolder, STRINGS_FILE_NAME));
+
+                    using (MemoryStream textsStream = new MemoryStream())
+                    {
+                        Texts.Insert(texts, textsStream, table);
+                        subBlockData[14] = textsStream.ToArray();
+                    }
+                }
+
+                // Modify subBlockPositions according to new subBlock lengths
+
+                uint currentPosition = 0;
+
+                for (int sb = 0; sb < 16; sb++)
+                {
+                    if (subBlockPositions[sb] == 0) continue;
+
+                    currentPosition += (uint)subBlockData[sb].Length;
+
+                    // The first position will always remain the same
+                    if (sb == 0) continue;
+
+                    subBlockPositions[sb] = currentPosition;
+                }
+
+                // Read texture block data
+
+                //rdxStream.Position = textureDataBlockPosition;
+
+                //uint numberOfTextures = br.ReadUInt32();
+
+                //uint[] texturePositions = new uint[numberOfTextures];
+                //for (int tp = 0; tp < numberOfTextures; tp++)
+                //{
+                //    texturePositions[tp] = br.ReadUInt32();
+                //}
+
+                //for (int tp = 0; tp < numberOfTextures; tp++)
+                //{
+                //    rdxStream.Position = texturePositions[tp];
+
+                //    uint textureSize;
+                //    if (tp < numberOfTextures - 1) textureSize = texturePositions[tp + 1] - texturePositions[tp];
+                //    else textureSize = (uint)rdxStream.Length - texturePositions[tp];
+
+                //    using (SubStream tm2Stream = new SubStream(rdxStream, 0, textureSize, true))
+                //    {
+                //        TM2.Extract(rdxStream, Path.Combine(outputFolder, $"TIM2-{tp:0000}"));
+                //    }
+                //}
+            }
+        }
+
+        class Data
+        {
+            readonly IBlock[] Blocks;
+
+            readonly byte[] AuthorName;
+
+            const uint BLOCK_COUNT = 5;
+
+            public Data(Stream rdxStream)
+            {
+                using (BinaryReader br = new BinaryReader(rdxStream, Encoding.UTF8, true))
+                {
+                    uint magic = br.ReadUInt32();
+                    if (magic != MAGIC)
+                    {
+                        throw new InvalidDataException("Not a valid RDX file.");
+                    }
+
+                    // Blocks
+
+                    rdxStream.Position = 0x10;
+
+                    uint textDataBlockPosition = br.ReadUInt32();
+                    uint unk1DataBlockPosition = br.ReadUInt32();
+                    uint unk2DataBlockPosition = br.ReadUInt32();
+                    uint unk3DataBlockPosition = br.ReadUInt32();
+                    uint textureDataBlockPosition = br.ReadUInt32();
+
+                    Blocks = new IBlock[BLOCK_COUNT];
+                    rdxStream.Position = textDataBlockPosition;
+                    Blocks[0] = new TextsBlock(rdxStream, unk1DataBlockPosition - textDataBlockPosition);
+                    rdxStream.Position = unk1DataBlockPosition;
+                    Blocks[1] = new GenericBlock(rdxStream, unk2DataBlockPosition - unk1DataBlockPosition);
+                    rdxStream.Position = unk2DataBlockPosition;
+                    Blocks[2] = new GenericBlock(rdxStream, unk3DataBlockPosition - unk2DataBlockPosition);
+                    rdxStream.Position = unk3DataBlockPosition;
+                    Blocks[3] = new GenericBlock(rdxStream, textureDataBlockPosition - unk3DataBlockPosition);
+                    rdxStream.Position = textureDataBlockPosition;
+                    Blocks[4] = new TextureBlock(rdxStream, (uint)rdxStream.Length - textureDataBlockPosition);
+
+                    // Author name
+
+                    rdxStream.Position = 0x60;
+
+                    AuthorName = new byte[32];
+                    rdxStream.Read(AuthorName, 0, 32);
+                }
+            }
+
+            public void Save(string outputFileName)
+            {
+
+            }
+        }
+
+        interface IBlock
+        {
+            int Size { get; }
+        }
+
+        class TextsBlock : IBlock
+        {
+            public int Size => throw new NotImplementedException();
+
+            readonly IBlock[] Blocks;
+            readonly byte[] UnknownData;
+
+            const uint BLOCK_COUNT = 16;
+
+            public TextsBlock(Stream rdxStream, uint length)
+            {
+                Blocks = new IBlock[BLOCK_COUNT];
+
+                using (BinaryReader br = new BinaryReader(rdxStream, Encoding.UTF8, true))
+                {
+                    // Block pointers
+
+                    uint[] blockPositions = new uint[BLOCK_COUNT];
+                    for (int b = 0; b < BLOCK_COUNT; b++)
+                    {
+                        blockPositions[b] = br.ReadUInt32();
+                    }
+
+                    // Unknown data
+
+                    uint unknownDataLength = GetNextBlockPosition(blockPositions, -1, length) - (uint)rdxStream.Position;
+                    UnknownData = new byte[unknownDataLength];
+                    rdxStream.Read(UnknownData, 0, UnknownData.Length);
+
+                    // Block data
+
+                    for (int b = 0; b < BLOCK_COUNT; b++)
+                    {
+                        if (blockPositions[b] == 0) continue;
+
+                        rdxStream.Position = blockPositions[b];
+                        uint blockLength = GetNextBlockPosition(blockPositions, b, length) - blockPositions[b];
+                        Blocks[b] = new GenericBlock(rdxStream, blockLength);
+                    }
+                }
+            }
+
+            uint GetNextBlockPosition(uint[] blockPositions, int blockPositionIndex, uint length)
+            {
+                if (blockPositionIndex < -1 || blockPositionIndex > BLOCK_COUNT - 1) throw new ArgumentOutOfRangeException(nameof(blockPositionIndex));
+
+                for (int b = blockPositionIndex + 1; b < BLOCK_COUNT; b++)
+                {
+                    if (blockPositions[b] != 0) return blockPositions[b];
+                }
+
+                return length;
+            }
+        }
+
+        class GenericBlock : IBlock
+        {
+            public int Size => Data.Length;
+
+            readonly byte[] Data;
+
+            public GenericBlock(Stream rdxStream, uint length)
+            {
+                Data = new byte[length];
+                rdxStream.Read(Data, 0, Data.Length);
+            }
+        }
+
+        class TextureBlock : IBlock
+        {
+            public int Size => throw new NotImplementedException();
+
+            public TextureBlock(Stream rdxStream, uint length)
+            {
+
+            }
         }
     }
 }
