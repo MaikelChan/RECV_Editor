@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Text;
 
@@ -325,8 +326,8 @@ namespace RECV_Editor.File_Formats
 
                     Blocks = new IBlock[BLOCK_COUNT];
                     Blocks[0] = new TextsBlock(rdxStream, textDataBlockPosition, unk1DataBlockPosition);
-                    Blocks[1] = new ContainerBlock(rdxStream, 23, unk1DataBlockPosition, unk2DataBlockPosition);
-                    Blocks[2] = new ContainerBlock(rdxStream, 6, unk2DataBlockPosition, unk3DataBlockPosition);
+                    Blocks[1] = new GenericContainerBlock(rdxStream, unk1DataBlockPosition, unk2DataBlockPosition);
+                    Blocks[2] = new GenericContainerBlock(rdxStream, 6, unk2DataBlockPosition, unk3DataBlockPosition); // TODO: Sometimes contains absolute pointers, sometimes not?
                     Blocks[3] = new GenericBlock(rdxStream, unk3DataBlockPosition, textureDataBlockPosition);
                     Blocks[4] = new TextureBlock(rdxStream, textureDataBlockPosition, (uint)rdxStream.Length);
 
@@ -429,21 +430,7 @@ namespace RECV_Editor.File_Formats
             }
         }
 
-        class GenericBlock : IBlock
-        {
-            public uint Size => (uint)Data.Length;
-
-            readonly byte[] Data;
-
-            public GenericBlock(Stream rdxStream, uint startPosition, uint endPosition)
-            {
-                rdxStream.Position = startPosition;
-                Data = new byte[endPosition - startPosition];
-                rdxStream.Read(Data, 0, Data.Length);
-            }
-        }
-
-        class ContainerBlock : IBlock
+        class GenericContainerBlock : IBlock
         {
             public uint Size
             {
@@ -469,26 +456,44 @@ namespace RECV_Editor.File_Formats
             readonly IBlock[] Blocks;
             readonly uint paddingSize;
 
-            public ContainerBlock(Stream rdxStream, uint blockCount, uint startPosition, uint endPosition)
+            public GenericContainerBlock(Stream rdxStream, uint startPosition, uint endPosition) : this(rdxStream, -1, startPosition, endPosition)
             {
-                Blocks = new IBlock[blockCount];
+
+            }
+
+            public GenericContainerBlock(Stream rdxStream, int blockCount, uint startPosition, uint endPosition)
+            {
+                List<uint> blockPositions = new List<uint>();
 
                 rdxStream.Position = startPosition;
 
                 using (BinaryReader br = new BinaryReader(rdxStream, Encoding.UTF8, true))
                 {
-                    uint[] blockPositions = new uint[blockCount];
-                    for (int b = 0; b < blockCount; b++)
+                    if (blockCount < 0)
                     {
-                        blockPositions[b] = br.ReadUInt32();
+                        for (; ; )
+                        {
+                            uint pointer = br.ReadUInt32();
+                            if (pointer == 0) break;
+                            blockPositions.Add(pointer);
+                        }
+                    }
+                    else
+                    {
+                        for (int b = 0; b < blockCount; b++)
+                        {
+                            blockPositions.Add(br.ReadUInt32());
+                        }
                     }
 
-                    for (int b = 0; b < blockCount; b++)
+                    Blocks = new IBlock[blockPositions.Count];
+
+                    for (int b = 0; b < Blocks.Length; b++)
                     {
                         rdxStream.Position = blockPositions[b];
 
                         uint length;
-                        if (b == blockCount - 1) length = endPosition - blockPositions[b];
+                        if (b == Blocks.Length - 1) length = endPosition - blockPositions[b];
                         else length = blockPositions[b + 1] - blockPositions[b];
 
                         Blocks[b] = new GenericBlock(rdxStream, blockPositions[b], blockPositions[b] + length);
@@ -496,6 +501,20 @@ namespace RECV_Editor.File_Formats
 
                     paddingSize = blockPositions[0] - (startPosition + ((uint)Blocks.Length * 4));
                 }
+            }
+        }
+
+        class GenericBlock : IBlock
+        {
+            public uint Size => (uint)Data.Length;
+
+            readonly byte[] Data;
+
+            public GenericBlock(Stream rdxStream, uint startPosition, uint endPosition)
+            {
+                rdxStream.Position = startPosition;
+                Data = new byte[endPosition - startPosition];
+                rdxStream.Read(Data, 0, Data.Length);
             }
         }
 
