@@ -8,6 +8,7 @@ namespace RECV_Editor.File_Formats
     class RDX
     {
         const uint MAGIC = 0x41200000;
+        const uint MAGIC_2 = 0x40051eb8;
         const string STRINGS_FILE_NAME = "Strings.txt";
 
         public enum Results { Success, NotValidRdxFile }
@@ -60,6 +61,12 @@ namespace RECV_Editor.File_Formats
             using (BinaryReader br = new BinaryReader(rdxStream, Encoding.UTF8, true))
             {
                 uint magic = br.ReadUInt32();
+
+                if (magic == MAGIC_2)
+                {
+                    return Results.NotValidRdxFile;
+                }
+
                 if (magic != MAGIC)
                 {
                     return Results.NotValidRdxFile;
@@ -173,17 +180,17 @@ namespace RECV_Editor.File_Formats
 
             string stringsFile = Path.Combine(inputFolder, STRINGS_FILE_NAME);
 
-            if (!File.Exists(stringsFile))
-            {
-                throw new FileNotFoundException($"File \"{stringsFile}\" does not exist!", stringsFile);
-            }
+            //if (!File.Exists(stringsFile))
+            //{
+            //    throw new FileNotFoundException($"File \"{stringsFile}\" does not exist!", stringsFile);
+            //}
 
             string[] tim2Paths = Directory.GetDirectories(inputFolder);
 
-            if (tim2Paths.Length == 0)
-            {
-                throw new DirectoryNotFoundException($"No TIM2 directories have been found in \"{inputFolder}\".");
-            }
+            //if (tim2Paths.Length == 0)
+            //{
+            //    throw new DirectoryNotFoundException($"No TIM2 directories have been found in \"{inputFolder}\".");
+            //}
 
             // Gather data we need to preserve from the original RDX
 
@@ -309,6 +316,13 @@ namespace RECV_Editor.File_Formats
                 using (BinaryReader br = new BinaryReader(rdxStream, Encoding.UTF8, true))
                 {
                     uint magic = br.ReadUInt32();
+
+                    if (magic == MAGIC_2)
+                    {
+                        // RDX Variations. Don't do anything with them for now.
+                        return;
+                    }
+
                     if (magic != MAGIC)
                     {
                         throw new InvalidDataException("Not a valid RDX file.");
@@ -326,8 +340,8 @@ namespace RECV_Editor.File_Formats
 
                     Blocks = new IBlock[BLOCK_COUNT];
                     Blocks[0] = new TextsBlock(rdxStream, textDataBlockPosition, unk1DataBlockPosition);
-                    Blocks[1] = new GenericContainerBlock(rdxStream, unk1DataBlockPosition, unk2DataBlockPosition);
-                    Blocks[2] = new GenericContainerBlock(rdxStream, 6, unk2DataBlockPosition, unk3DataBlockPosition); // TODO: Sometimes contains absolute pointers, sometimes not?
+                    Blocks[1] = new GenericContainerBlock(rdxStream, GenericContainerBlock.ReadPointersMode.ReadUntilFirstInvalidValue, unk1DataBlockPosition, unk2DataBlockPosition);
+                    Blocks[2] = new GenericContainerBlock(rdxStream, GenericContainerBlock.ReadPointersMode.ReadUntilFirstInvalidValue, unk2DataBlockPosition, unk3DataBlockPosition); // TODO: Sometimes contains absolute pointers, sometimes not?
                     Blocks[3] = new GenericBlock(rdxStream, unk3DataBlockPosition, textureDataBlockPosition);
                     Blocks[4] = new TextureBlock(rdxStream, textureDataBlockPosition, (uint)rdxStream.Length);
 
@@ -419,9 +433,9 @@ namespace RECV_Editor.File_Formats
 
             uint GetNextBlockPosition(uint[] blockPositions, int blockIndex, uint endPosition)
             {
-                if (blockIndex < -1 || blockIndex > BLOCK_COUNT - 1) throw new ArgumentOutOfRangeException(nameof(blockIndex));
+                if (blockIndex < -1 || blockIndex > blockPositions.Length - 1) throw new ArgumentOutOfRangeException(nameof(blockIndex));
 
-                for (int b = blockIndex + 1; b < BLOCK_COUNT; b++)
+                for (int b = blockIndex + 1; b < blockPositions.Length; b++)
                 {
                     if (blockPositions[b] != 0) return blockPositions[b];
                 }
@@ -453,36 +467,50 @@ namespace RECV_Editor.File_Formats
                 }
             }
 
+            public enum ReadPointersMode { ReadUntilFirstZero, ReadUntilFirstInvalidValue }
+
             readonly IBlock[] Blocks;
             readonly uint paddingSize;
 
-            public GenericContainerBlock(Stream rdxStream, uint startPosition, uint endPosition) : this(rdxStream, -1, startPosition, endPosition)
+            public GenericContainerBlock(Stream rdxStream, ReadPointersMode readPointersMode, uint startPosition, uint endPosition)
             {
-
-            }
-
-            public GenericContainerBlock(Stream rdxStream, int blockCount, uint startPosition, uint endPosition)
-            {
-                List<uint> blockPositions = new List<uint>();
+                List<uint> blockPositions = new List<uint>(); // TODO: Store relative pointers instead of absolute?
 
                 rdxStream.Position = startPosition;
 
                 using (BinaryReader br = new BinaryReader(rdxStream, Encoding.UTF8, true))
                 {
-                    if (blockCount < 0)
+                    if (readPointersMode == ReadPointersMode.ReadUntilFirstZero)
                     {
                         for (; ; )
                         {
                             uint pointer = br.ReadUInt32();
+
                             if (pointer == 0) break;
+                            if (pointer < startPosition)
+                                throw new InvalidDataException("Invalid pointer found in container block.");
+                            if (pointer >= endPosition)
+                                throw new InvalidDataException("Invalid pointer found in container block.");
+
                             blockPositions.Add(pointer);
                         }
                     }
                     else
                     {
-                        for (int b = 0; b < blockCount; b++)
+                        for (; ; )
                         {
-                            blockPositions.Add(br.ReadUInt32());
+                            uint pointer = br.ReadUInt32();
+
+                            if (pointer == 0)
+                            {
+                                blockPositions.Add(0);
+                                continue;
+                            }
+
+                            if (pointer < startPosition) break;
+                            if (pointer >= endPosition) break;
+
+                            blockPositions.Add(pointer);
                         }
                     }
 
@@ -490,17 +518,30 @@ namespace RECV_Editor.File_Formats
 
                     for (int b = 0; b < Blocks.Length; b++)
                     {
+                        if (blockPositions[b] == 0) continue;
+
                         rdxStream.Position = blockPositions[b];
 
-                        uint length;
-                        if (b == Blocks.Length - 1) length = endPosition - blockPositions[b];
-                        else length = blockPositions[b + 1] - blockPositions[b];
+                        uint nextPosition = GetNextBlockPosition(blockPositions.ToArray(), b, endPosition);
+                        uint length = nextPosition - blockPositions[b];
 
                         Blocks[b] = new GenericBlock(rdxStream, blockPositions[b], blockPositions[b] + length);
                     }
 
                     paddingSize = blockPositions[0] - (startPosition + ((uint)Blocks.Length * 4));
                 }
+            }
+
+            uint GetNextBlockPosition(uint[] blockPositions, int blockIndex, uint endPosition) // TODO: Unify this and same method in TextsBlock
+            {
+                if (blockIndex < -1 || blockIndex > blockPositions.Length - 1) throw new ArgumentOutOfRangeException(nameof(blockIndex));
+
+                for (int b = blockIndex + 1; b < blockPositions.Length; b++)
+                {
+                    if (blockPositions[b] != 0) return blockPositions[b];
+                }
+
+                return endPosition;
             }
         }
 
