@@ -41,6 +41,21 @@ namespace RECV_Editor.File_Formats
                         magic = br.ReadUInt32();
                     }
 
+                    // There is one case with a null texture, located in RDX #87
+                    if (magic == 0xFFFFFFFF)
+                    {
+                        tm2Stream.Position -= 4;
+
+                        using (FileStream fs = File.OpenWrite(outputFileName + ".TM2"))
+                        {
+                            tm2Stream.CopySliceTo(fs, 0x20); // TODO: Is it always 0x20?
+                        }
+
+                        currentTextureIndex++;
+
+                        continue;
+                    }
+
                     // Here should be TM2 data, check if that's the case
                     if (magic != TIM2_MAGIC)
                     {

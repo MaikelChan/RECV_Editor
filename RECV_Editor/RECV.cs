@@ -30,7 +30,7 @@ namespace RECV_Editor
         }
 
         const int MAX_EXTRACTION_PROGRESS_STEPS = 4;
-        const int MAX_INSERTION_PROGRESS_STEPS = 4;
+        const int MAX_INSERTION_PROGRESS_STEPS = 5;
 
         public static void ExtractAll(string inputFolder, string outputFolder, Table table, IProgress<ProgressInfo> progress)
         {
@@ -237,17 +237,32 @@ namespace RECV_Editor
                 throw new InvalidDataException($"There should be {originalRdxFiles.Length} RDX folder, but found {rdxPaths.Length} instead in \"{RDX_LNK1_folder}\"");
             }
 
+            int currentRdxFile = 1;
+            currentProgressValue++;
+
+#if MULTITHREADING
+            Parallel.For(0, rdxPaths.Length, (r) =>
+            {
+#else
             for (int r = 0; r < rdxPaths.Length; r++)
             {
+#endif
+                Logger.Append($"Inserting RDX file \"{rdxPaths[r]}\"...");
+                progress?.Report(new ProgressInfo($"Inserting RDX files... ({currentRdxFile++}/{rdxPaths.Length})", currentProgressValue, MAX_INSERTION_PROGRESS_STEPS));
+
                 byte[] rdxData = File.ReadAllBytes(originalRdxFiles[r]);
                 byte[] rdxUncompressedData = PRS.Decompress(rdxData);
                 File.WriteAllBytes(originalRdxFiles[r], rdxUncompressedData);
 
                 RDX.Insert(rdxPaths[r], originalRdxFiles[r], table);
+#if MULTITHREADING
+            });
+#else
             }
+#endif
 
-            Logger.Append($"Extracting \"{RDX_LNK1_folder}\"...");
-            progress?.Report(new ProgressInfo($"Extracting \"{ENG_RDX_LNK1_AFS_PATH}\"...", ++currentProgressValue, MAX_INSERTION_PROGRESS_STEPS));
+            //Logger.Append($"Extracting \"{RDX_LNK1_folder}\"...");
+            //progress?.Report(new ProgressInfo($"Extracting \"{ENG_RDX_LNK1_AFS_PATH}\"...", ++currentProgressValue, MAX_INSERTION_PROGRESS_STEPS));
 
             // Finish process
 

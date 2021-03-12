@@ -15,6 +15,12 @@ namespace RECV_Editor
             return (value << 24) | ((value & 0x0000FF00) << 8) | ((value & 0x00FF0000) >> 8) | (value >> 24);
         }
 
+        public static uint Padding(uint value, uint paddingSize)
+        {
+            uint p = value % paddingSize;
+            return p == 0 ? value : value + (paddingSize - p);
+        }
+
         public static void CopySliceTo(this Stream origin, Stream destination, int bytesCount)
         {
             byte[] buffer = new byte[65536];
