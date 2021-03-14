@@ -2,6 +2,7 @@
 using PSO.PRS;
 using RECV_Editor.File_Formats;
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -18,6 +19,9 @@ namespace RECV_Editor
         public Form1()
         {
             InitializeComponent();
+
+            Process currentProcess = Process.GetCurrentProcess();
+            currentProcess.PriorityClass = ProcessPriorityClass.BelowNormal;
         }
 
         #region Controls events

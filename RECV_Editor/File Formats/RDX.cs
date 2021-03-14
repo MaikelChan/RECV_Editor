@@ -128,10 +128,10 @@ namespace RECV_Editor.File_Formats
                     if (tp < numberOfTextures - 1) textureSize = texturePositions[tp + 1] - texturePositions[tp];
                     else textureSize = (uint)rdxStream.Length - texturePositions[tp];
 
-                    using (SubStream tm2Stream = new SubStream(rdxStream, 0, textureSize, true))
-                    {
-                        TM2.Extract(rdxStream, Path.Combine(outputFolder, $"TIM2-{tp:0000}"));
-                    }
+                    //using (SubStream tm2Stream = new SubStream(rdxStream, 0, textureSize, true))
+                    //{
+                    TM2.Extract(rdxStream, Path.Combine(outputFolder, $"TIM2-{tp:0000}"));
+                    //}
                 }
             }
 
@@ -178,14 +178,14 @@ namespace RECV_Editor.File_Formats
                 throw new ArgumentNullException(nameof(table));
             }
 
-            string stringsFile = Path.Combine(inputFolder, STRINGS_FILE_NAME);
+            //string stringsFile = Path.Combine(inputFolder, STRINGS_FILE_NAME);
 
             //if (!File.Exists(stringsFile))
             //{
             //    throw new FileNotFoundException($"File \"{stringsFile}\" does not exist!", stringsFile);
             //}
 
-            string[] tim2Paths = Directory.GetDirectories(inputFolder);
+            //string[] tim2Paths = Directory.GetDirectories(inputFolder);
 
             //if (tim2Paths.Length == 0)
             //{
@@ -285,29 +285,26 @@ namespace RECV_Editor.File_Formats
 
                 // Read texture block data
 
-                //rdxStream.Position = textureDataBlockPosition;
+                rdxStream.Position = textureDataBlockPosition;
 
-                //uint numberOfTextures = br.ReadUInt32();
+                uint numberOfTextures = br.ReadUInt32();
 
-                //uint[] texturePositions = new uint[numberOfTextures];
-                //for (int tp = 0; tp < numberOfTextures; tp++)
-                //{
-                //    texturePositions[tp] = br.ReadUInt32();
-                //}
+                uint[] texturePositions = new uint[numberOfTextures];
+                for (int tp = 0; tp < numberOfTextures; tp++)
+                {
+                    texturePositions[tp] = br.ReadUInt32();
+                }
 
-                //for (int tp = 0; tp < numberOfTextures; tp++)
-                //{
-                //    rdxStream.Position = texturePositions[tp];
+                for (int tp = 0; tp < numberOfTextures; tp++)
+                {
+                    rdxStream.Position = texturePositions[tp];
 
-                //    uint textureSize;
-                //    if (tp < numberOfTextures - 1) textureSize = texturePositions[tp + 1] - texturePositions[tp];
-                //    else textureSize = (uint)rdxStream.Length - texturePositions[tp];
+                    uint textureSize;
+                    if (tp < numberOfTextures - 1) textureSize = texturePositions[tp + 1] - texturePositions[tp];
+                    else textureSize = (uint)rdxStream.Length - texturePositions[tp];
 
-                //    using (SubStream tm2Stream = new SubStream(rdxStream, 0, textureSize, true))
-                //    {
-                //        TM2.Extract(rdxStream, Path.Combine(outputFolder, $"TIM2-{tp:0000}"));
-                //    }
-                //}
+                    TM2.Insert(Path.Combine(inputFolder, $"TIM2-{tp:0000}"), rdxStream);
+                }
             }
         }
 
