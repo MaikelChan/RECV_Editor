@@ -38,6 +38,14 @@ namespace RECV_Editor
 
             SetProcessRunning(false);
             UpdateStatus(new RECV.ProgressInfo("Ready...", 0, 100));
+
+            string[] platforms = Enum.GetNames(typeof(RECV.Platforms));
+            PlatformComboBox.Items.AddRange(platforms);
+            PlatformComboBox.SelectedIndex = 0;
+
+            string[] languages = Enum.GetNames(typeof(RECV.Languages));
+            LanguageComboBox.Items.AddRange(languages);
+            LanguageComboBox.SelectedIndex = 0;
         }
 
         private void Form1_FormClosing(object sender, FormClosingEventArgs e)
@@ -57,13 +65,14 @@ namespace RECV_Editor
         {
             SetProcessRunning(true);
 
+            RECV.Languages language = (RECV.Languages)LanguageComboBox.SelectedIndex;
+
 #if !DEBUG
             try
             {
 #endif
-            Table table = new Table(settings.Data.TableFile);
             Progress<RECV.ProgressInfo> progress = new Progress<RECV.ProgressInfo>(UpdateStatus);
-            await Task.Run(() => RECV.ExtractAll(settings.Data.OriginalGameRootFolder, settings.Data.ProjectFolder, table, progress));
+            await Task.Run(() => RECV.ExtractAll(settings.Data.OriginalGameRootFolder, settings.Data.ProjectFolder, settings.Data.TablesFolder, language, progress));
 #if !DEBUG
             }
             catch (Exception ex)
@@ -80,13 +89,14 @@ namespace RECV_Editor
         {
             SetProcessRunning(true);
 
+            RECV.Languages language = (RECV.Languages)LanguageComboBox.SelectedIndex;
+
 #if !DEBUG
             try
             {
 #endif
-            Table table = new Table(settings.Data.TableFile);
             Progress<RECV.ProgressInfo> progress = new Progress<RECV.ProgressInfo>(UpdateStatus);
-            await Task.Run(() => RECV.InsertAll(settings.Data.ProjectFolder, settings.Data.GeneratedGameRootFolder, settings.Data.OriginalGameRootFolder, table, progress));
+            await Task.Run(() => RECV.InsertAll(settings.Data.ProjectFolder, settings.Data.GeneratedGameRootFolder, settings.Data.OriginalGameRootFolder, settings.Data.TablesFolder, language, progress));
 #if !DEBUG
             }
             catch (Exception ex)
@@ -101,7 +111,7 @@ namespace RECV_Editor
 
         private void DebugExtractButton_Click(object sender, EventArgs e)
         {
-            Table table = new Table(settings.Data.TableFile);
+            Table table = RECV.GetTableFromLanguage(settings.Data.TablesFolder, RECV.Languages.English);
 
             ALD.Extract(@"D:\Romhacking\Proyectos\Resident Evil Code Veronica\ENG\SYSMES1.ALD", @"D:\Romhacking\Proyectos\Resident Evil Code Veronica\Project\TEST", table);
             ALD.Insert(@"D:\Romhacking\Proyectos\Resident Evil Code Veronica\Project\TEST", @"D:\Romhacking\Proyectos\Resident Evil Code Veronica\Project\TEST.ALD", table);
@@ -127,7 +137,7 @@ namespace RECV_Editor
 
             File.WriteAllBytes(prsFile + ".unc", uncompressedPrsData);
 
-            Table table = new Table(settings.Data.TableFile);
+            Table table = RECV.GetTableFromLanguage(settings.Data.TablesFolder, RECV.Languages.English);
             RDX.Extract(uncompressedPrsData, prsFile + "_output", table);
         }
 
@@ -137,11 +147,18 @@ namespace RECV_Editor
         {
             isProcessRunning = value;
 
+            LanguageLabel.Enabled = !value;
+            LanguageComboBox.Enabled = !value;
+
             ExtractAllButton.Enabled = !value;
             InsertAllButton.Enabled = !value;
-            DebugGroup.Enabled = !value;
-            DebugExtractButton.Enabled = !value;
-            DebugDecompressButton.Enabled = !value;
+            //DebugGroup.Enabled = !value;
+            //DebugExtractButton.Enabled = !value;
+            //DebugDecompressButton.Enabled = !value;
+
+            DebugGroup.Enabled = false;
+            DebugExtractButton.Enabled = false;
+            DebugDecompressButton.Enabled = false;
         }
 
         void UpdateStatus(RECV.ProgressInfo progressInfo)
@@ -193,20 +210,16 @@ namespace RECV_Editor
 
             settings.Data.ProjectFolder = oDlg.FileName;
 
-            // Table file
+            // Extraction folder
 
-            oDlg.Title = "Select the table file";
-            oDlg.IsFolderPicker = false;
-            oDlg.Filters.Add(new CommonFileDialogFilter("Table files (*.tbl)", "*.tbl"));
-            oDlg.Filters.Add(new CommonFileDialogFilter("Text files (.txt)", "*.txt"));
-            oDlg.Filters.Add(new CommonFileDialogFilter("All files (*.*)", "*.*"));
+            oDlg.Title = "Select the folder where your tables are located";
             if (oDlg.ShowDialog() != CommonFileDialogResult.Ok)
             {
                 Close();
                 return false;
             }
 
-            settings.Data.TableFile = oDlg.FileName;
+            settings.Data.TablesFolder = oDlg.FileName;
 
             // Save
 

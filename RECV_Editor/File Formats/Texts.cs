@@ -8,7 +8,6 @@ namespace RECV_Editor.File_Formats
     static class Texts
     {
         const ushort TEXT_END = 0xFFFF;
-        const ushort BLOCK_END = 0xFF01;
 
         const string TEXT_END_STRING = "[TEXT END]----------------------------------------------";
         const string BLOCK_END_STRING = "[BLOCK END]---------------------------------------------";
@@ -101,11 +100,11 @@ namespace RECV_Editor.File_Formats
                 }
 
                 // Make sure of being at the end of the text data block
-                ushort value = br.ReadUInt16();
-                if (value != BLOCK_END && value != 0x0)
-                {
-                    Logger.Append($"Expected end of block but 0x{value:X} found at 0x{(textStream.Position - 2):X}. This could mean that there are some unused contents at the end of this file.", Logger.LogTypes.Warning);
-                }
+                //ushort value = br.ReadUInt16();
+                //if (value != BLOCK_END && value != 0x0)
+                //{
+                //    Logger.Append($"Expected end of block but 0x{value:X} found at 0x{(textStream.Position - 2):X}. This could mean that there are some unused contents at the end of this file.", Logger.LogTypes.Warning);
+                //}
 
                 sb.Append($"{BLOCK_END_STRING}\n");
             }
@@ -146,7 +145,9 @@ namespace RECV_Editor.File_Formats
 
                         if (line == BLOCK_END_STRING)
                         {
-                            bw.Write(BLOCK_END);
+                            uint padding = Utils.Padding((uint)ms.Position, 4);
+                            padding = padding - (uint)ms.Position;
+                            for (uint p = 0; p < padding; p++) bw.Write((byte)0xFF);
                             break;
                         }
 

@@ -36,6 +36,10 @@
             this.StatusProgressBar = new System.Windows.Forms.ToolStripProgressBar();
             this.StatusLabel = new System.Windows.Forms.ToolStripStatusLabel();
             this.InsertAllButton = new System.Windows.Forms.Button();
+            this.LanguageComboBox = new System.Windows.Forms.ComboBox();
+            this.LanguageLabel = new System.Windows.Forms.Label();
+            this.PlatformComboBox = new System.Windows.Forms.ComboBox();
+            this.PlatformLabel = new System.Windows.Forms.Label();
             this.DebugGroup.SuspendLayout();
             this.StatusStrip.SuspendLayout();
             this.SuspendLayout();
@@ -44,7 +48,7 @@
             // 
             this.DebugExtractButton.Location = new System.Drawing.Point(6, 19);
             this.DebugExtractButton.Name = "DebugExtractButton";
-            this.DebugExtractButton.Size = new System.Drawing.Size(166, 37);
+            this.DebugExtractButton.Size = new System.Drawing.Size(169, 37);
             this.DebugExtractButton.TabIndex = 0;
             this.DebugExtractButton.Text = "Extract";
             this.DebugExtractButton.UseVisualStyleBackColor = true;
@@ -52,9 +56,9 @@
             // 
             // DebugDecompressButton
             // 
-            this.DebugDecompressButton.Location = new System.Drawing.Point(177, 19);
+            this.DebugDecompressButton.Location = new System.Drawing.Point(181, 19);
             this.DebugDecompressButton.Name = "DebugDecompressButton";
-            this.DebugDecompressButton.Size = new System.Drawing.Size(166, 37);
+            this.DebugDecompressButton.Size = new System.Drawing.Size(169, 37);
             this.DebugDecompressButton.TabIndex = 1;
             this.DebugDecompressButton.Text = "Decompress";
             this.DebugDecompressButton.UseVisualStyleBackColor = true;
@@ -66,18 +70,20 @@
             | System.Windows.Forms.AnchorStyles.Right)));
             this.DebugGroup.Controls.Add(this.DebugExtractButton);
             this.DebugGroup.Controls.Add(this.DebugDecompressButton);
-            this.DebugGroup.Location = new System.Drawing.Point(12, 69);
+            this.DebugGroup.Location = new System.Drawing.Point(12, 112);
             this.DebugGroup.Name = "DebugGroup";
-            this.DebugGroup.Size = new System.Drawing.Size(349, 66);
+            this.DebugGroup.Size = new System.Drawing.Size(356, 66);
             this.DebugGroup.TabIndex = 2;
             this.DebugGroup.TabStop = false;
             this.DebugGroup.Text = "Debug";
             // 
             // ExtractAllButton
             // 
-            this.ExtractAllButton.Location = new System.Drawing.Point(12, 12);
+            this.ExtractAllButton.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.ExtractAllButton.Location = new System.Drawing.Point(12, 62);
             this.ExtractAllButton.Name = "ExtractAllButton";
-            this.ExtractAllButton.Size = new System.Drawing.Size(172, 51);
+            this.ExtractAllButton.Size = new System.Drawing.Size(175, 41);
             this.ExtractAllButton.TabIndex = 3;
             this.ExtractAllButton.Text = "Extract All...";
             this.ExtractAllButton.UseVisualStyleBackColor = true;
@@ -88,9 +94,9 @@
             this.StatusStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.StatusProgressBar,
             this.StatusLabel});
-            this.StatusStrip.Location = new System.Drawing.Point(0, 140);
+            this.StatusStrip.Location = new System.Drawing.Point(0, 183);
             this.StatusStrip.Name = "StatusStrip";
-            this.StatusStrip.Size = new System.Drawing.Size(373, 22);
+            this.StatusStrip.Size = new System.Drawing.Size(380, 22);
             this.StatusStrip.SizingGrip = false;
             this.StatusStrip.TabIndex = 4;
             this.StatusStrip.Text = "statusStrip1";
@@ -109,19 +115,63 @@
             // 
             // InsertAllButton
             // 
-            this.InsertAllButton.Location = new System.Drawing.Point(191, 13);
+            this.InsertAllButton.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.InsertAllButton.Location = new System.Drawing.Point(193, 62);
             this.InsertAllButton.Name = "InsertAllButton";
-            this.InsertAllButton.Size = new System.Drawing.Size(170, 50);
+            this.InsertAllButton.Size = new System.Drawing.Size(175, 41);
             this.InsertAllButton.TabIndex = 5;
             this.InsertAllButton.Text = "Insert All...";
             this.InsertAllButton.UseVisualStyleBackColor = true;
             this.InsertAllButton.Click += new System.EventHandler(this.InsertAllButton_Click);
             // 
+            // LanguageComboBox
+            // 
+            this.LanguageComboBox.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.LanguageComboBox.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.LanguageComboBox.FormattingEnabled = true;
+            this.LanguageComboBox.Location = new System.Drawing.Point(193, 29);
+            this.LanguageComboBox.Name = "LanguageComboBox";
+            this.LanguageComboBox.Size = new System.Drawing.Size(175, 21);
+            this.LanguageComboBox.TabIndex = 6;
+            // 
+            // LanguageLabel
+            // 
+            this.LanguageLabel.AutoSize = true;
+            this.LanguageLabel.Location = new System.Drawing.Point(190, 9);
+            this.LanguageLabel.Name = "LanguageLabel";
+            this.LanguageLabel.Size = new System.Drawing.Size(61, 13);
+            this.LanguageLabel.TabIndex = 7;
+            this.LanguageLabel.Text = "Language:";
+            // 
+            // PlatformComboBox
+            // 
+            this.PlatformComboBox.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.PlatformComboBox.FormattingEnabled = true;
+            this.PlatformComboBox.Location = new System.Drawing.Point(12, 29);
+            this.PlatformComboBox.Name = "PlatformComboBox";
+            this.PlatformComboBox.Size = new System.Drawing.Size(175, 21);
+            this.PlatformComboBox.TabIndex = 8;
+            // 
+            // PlatformLabel
+            // 
+            this.PlatformLabel.AutoSize = true;
+            this.PlatformLabel.Location = new System.Drawing.Point(9, 9);
+            this.PlatformLabel.Name = "PlatformLabel";
+            this.PlatformLabel.Size = new System.Drawing.Size(53, 13);
+            this.PlatformLabel.TabIndex = 9;
+            this.PlatformLabel.Text = "Platform:";
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(373, 162);
+            this.ClientSize = new System.Drawing.Size(380, 205);
+            this.Controls.Add(this.PlatformLabel);
+            this.Controls.Add(this.PlatformComboBox);
+            this.Controls.Add(this.LanguageLabel);
+            this.Controls.Add(this.LanguageComboBox);
             this.Controls.Add(this.InsertAllButton);
             this.Controls.Add(this.StatusStrip);
             this.Controls.Add(this.ExtractAllButton);
@@ -152,6 +202,10 @@
         private System.Windows.Forms.ToolStripProgressBar StatusProgressBar;
         private System.Windows.Forms.ToolStripStatusLabel StatusLabel;
         private System.Windows.Forms.Button InsertAllButton;
+        private System.Windows.Forms.ComboBox LanguageComboBox;
+        private System.Windows.Forms.Label LanguageLabel;
+        private System.Windows.Forms.ComboBox PlatformComboBox;
+        private System.Windows.Forms.Label PlatformLabel;
     }
 }
 

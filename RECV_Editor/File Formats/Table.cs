@@ -13,6 +13,7 @@ namespace RECV_Editor.File_Formats
         const string PAGE_CODE_STRING = "[PAGE]";
         const string TIME_CODE_START_STRING = "[TIME:";
         const string ITEM_CODE_START_STRING = "[ITEM:";
+        const string HEX_CODE_START_STRING = "[HEX:";
 
         readonly Dictionary<ushort, string> hexToString = null;
         readonly Dictionary<string, ushort> stringToHex = null;
@@ -64,8 +65,8 @@ namespace RECV_Editor.File_Formats
 
             if (!found)
             {
-                str = $"[HEX:{hex:X}]";
-                Logger.Append($"Hex code 0x{hex:X} not found in table.", Logger.LogTypes.Warning);
+                str = $"{HEX_CODE_START_STRING}{hex:X4}]";
+                Logger.Append($"Hex code 0x{hex:X4} not found in table.", Logger.LogTypes.Warning);
             }
 
             return str;
@@ -75,8 +76,15 @@ namespace RECV_Editor.File_Formats
         {
             bool found = stringToHex.TryGetValue(str, out ushort hex);
 
-            if (!found && str.StartsWith("["))
+            if (!found)
             {
+                if (str.StartsWith(HEX_CODE_START_STRING))
+                {
+                    string code = str.Substring(HEX_CODE_START_STRING.Length, 4);
+                    Logger.Append($"Hex code 0x{code} not found in table.", Logger.LogTypes.Warning);
+                    return ushort.Parse(code, System.Globalization.NumberStyles.HexNumber);
+                }
+
                 throw new Exception($"Code {str} has not found in table.");
             }
 

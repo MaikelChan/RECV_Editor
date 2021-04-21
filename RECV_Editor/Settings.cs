@@ -1,6 +1,6 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using System;
 using System.IO;
-using System.Web.Script.Serialization;
 
 namespace RECV_Editor
 {
@@ -33,8 +33,7 @@ namespace RECV_Editor
             {
                 Logger.Append("Loading settings file...");
 
-                JavaScriptSerializer jsSerializer = new JavaScriptSerializer();
-                Data = jsSerializer.Deserialize<SettingsData>(File.ReadAllText(settingsFileName));
+                Data = JsonConvert.DeserializeObject<SettingsData>(File.ReadAllText(settingsFileName));
 
                 if (!Data.CheckIfValid())
                 {
@@ -49,8 +48,7 @@ namespace RECV_Editor
 
         public void Save()
         {
-            JavaScriptSerializer jsSerializer = new JavaScriptSerializer();
-            File.WriteAllText(settingsFileName, jsSerializer.Serialize(Data));
+            File.WriteAllText(settingsFileName, JsonConvert.SerializeObject(Data, Formatting.Indented));
         }
 
         public class SettingsData
@@ -58,14 +56,14 @@ namespace RECV_Editor
             public string OriginalGameRootFolder { get; set; }
             public string GeneratedGameRootFolder { get; set; }
             public string ProjectFolder { get; set; }
-            public string TableFile { get; set; }
+            public string TablesFolder { get; set; }
 
             public bool CheckIfValid()
             {
                 if (!Directory.Exists(OriginalGameRootFolder)) return false;
                 if (!Directory.Exists(GeneratedGameRootFolder)) return false;
                 if (!Directory.Exists(ProjectFolder)) return false;
-                if (!File.Exists(TableFile)) return false;
+                if (!Directory.Exists(TablesFolder)) return false;
 
                 return true;
             }

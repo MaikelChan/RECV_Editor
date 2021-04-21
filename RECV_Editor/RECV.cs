@@ -11,9 +11,11 @@ namespace RECV_Editor
 {
     static class RECV
     {
-        const string ENG_PATH = "ENG";
-        const string ENG_SYSMES1_ALD_PATH = ENG_PATH + "/SYSMES1.ALD";
-        const string ENG_RDX_LNK1_AFS_PATH = ENG_PATH + "/RDX_LNK1.AFS";
+        public enum Platforms { PS2 }
+
+        readonly static string[] languageCodes = new string[] { "ENG", "FRA", "GER", "SPA" };
+        readonly static int[] languageIndices = new int[] { 1, 2, 5, 4 };
+        public enum Languages { English, French, German, Spanish }
 
         public delegate void UpdateStatusDelegate(ProgressInfo progress);
 
@@ -34,7 +36,7 @@ namespace RECV_Editor
         const int MAX_EXTRACTION_PROGRESS_STEPS = 4;
         const int MAX_INSERTION_PROGRESS_STEPS = 5;
 
-        public static void ExtractAll(string inputFolder, string outputFolder, Table table, IProgress<ProgressInfo> progress)
+        public static void ExtractAll(string inputFolder, string outputFolder, string tablesFolder, Languages language, IProgress<ProgressInfo> progress)
         {
             if (string.IsNullOrEmpty(inputFolder))
             {
@@ -51,10 +53,12 @@ namespace RECV_Editor
                 throw new ArgumentNullException(nameof(outputFolder));
             }
 
-            if (table == null)
+            if (string.IsNullOrEmpty(tablesFolder))
             {
-                throw new ArgumentNullException(nameof(table));
+                throw new ArgumentNullException(nameof(tablesFolder));
             }
+
+            Table table = GetTableFromLanguage(tablesFolder, language);
 
             // Begin process
 
@@ -65,49 +69,56 @@ namespace RECV_Editor
 
             Logger.Append("Extract all process has begun. ---------------------------------------------------------------------");
 
-            // Create output ENG folder
+            // Generate some paths based on selected language
 
-            string outputEngFolder = Path.Combine(outputFolder, ENG_PATH);
-            if (!Directory.Exists(outputEngFolder))
+            string languageCode = languageCodes[(int)language];
+            int languageIndex = languageIndices[(int)language];
+            string SYSMES_ALD_Path = $"{languageCode}/SYSMES{languageIndex}.ALD";
+            string RDX_LNK_AFS_Path = $"{languageCode}/RDX_LNK{languageIndex}.AFS";
+
+            // Create output <languageCode> folder
+
+            string outputLanguageFolder = Path.Combine(outputFolder, languageCode);
+            if (!Directory.Exists(outputLanguageFolder))
             {
-                Logger.Append($"Creating \"{outputEngFolder}\" folder...");
-                Directory.CreateDirectory(outputEngFolder);
+                Logger.Append($"Creating \"{outputLanguageFolder}\" folder...");
+                Directory.CreateDirectory(outputLanguageFolder);
             }
 
             // Extract SYSMES1.ALD
 
-            string SYSMES1 = Path.Combine(inputFolder, ENG_SYSMES1_ALD_PATH);
+            string SYSMES = Path.Combine(inputFolder, SYSMES_ALD_Path);
 
-            if (!File.Exists(SYSMES1))
+            if (!File.Exists(SYSMES))
             {
-                throw new FileNotFoundException($"File \"{SYSMES1}\" does not exist!", SYSMES1);
+                throw new FileNotFoundException($"File \"{SYSMES}\" does not exist!", SYSMES);
             }
 
-            Logger.Append($"Extracting \"{SYSMES1}\"...");
-            progress?.Report(new ProgressInfo($"Extracting \"{ENG_SYSMES1_ALD_PATH}\"...", ++currentProgressValue, MAX_EXTRACTION_PROGRESS_STEPS));
+            Logger.Append($"Extracting \"{SYSMES}\"...");
+            progress?.Report(new ProgressInfo($"Extracting \"{SYSMES_ALD_Path}\"...", ++currentProgressValue, MAX_EXTRACTION_PROGRESS_STEPS));
 
-            ALD.Extract(SYSMES1, Path.ChangeExtension(Path.Combine(outputFolder, ENG_SYSMES1_ALD_PATH), null), table);
+            ALD.Extract(SYSMES, Path.ChangeExtension(Path.Combine(outputFolder, SYSMES_ALD_Path), null), table);
 
             // Extract AFS files
 
-            string RDX_LNK1 = Path.Combine(inputFolder, ENG_RDX_LNK1_AFS_PATH);
+            string RDX_LNK = Path.Combine(inputFolder, RDX_LNK_AFS_Path);
 
-            if (!File.Exists(RDX_LNK1))
+            if (!File.Exists(RDX_LNK))
             {
-                throw new FileNotFoundException($"File \"{RDX_LNK1}\" does not exist!", RDX_LNK1);
+                throw new FileNotFoundException($"File \"{RDX_LNK}\" does not exist!", RDX_LNK);
             }
 
-            Logger.Append($"Extracting \"{RDX_LNK1}\"...");
-            progress?.Report(new ProgressInfo($"Extracting \"{ENG_RDX_LNK1_AFS_PATH}\"...", ++currentProgressValue, MAX_EXTRACTION_PROGRESS_STEPS));
+            Logger.Append($"Extracting \"{RDX_LNK}\"...");
+            progress?.Report(new ProgressInfo($"Extracting \"{RDX_LNK_AFS_Path}\"...", ++currentProgressValue, MAX_EXTRACTION_PROGRESS_STEPS));
 
-            string engRDX_LNK1OutputPath = Path.ChangeExtension(Path.Combine(outputFolder, ENG_RDX_LNK1_AFS_PATH), null);
+            string RDX_LNK_OutputPath = Path.ChangeExtension(Path.Combine(outputFolder, RDX_LNK_AFS_Path), null);
             AFS.NotifyProgress += AFS_NotifyProgress;
-            AFS.ExtractAFS(RDX_LNK1, engRDX_LNK1OutputPath);
+            AFS.ExtractAFS(RDX_LNK, RDX_LNK_OutputPath);
             AFS.NotifyProgress -= AFS_NotifyProgress;
 
             // Decompress files in RDX_LNK1
 
-            string[] rdxFiles = Directory.GetFiles(engRDX_LNK1OutputPath);
+            string[] rdxFiles = Directory.GetFiles(RDX_LNK_OutputPath);
 
             currentProgressValue++;
             int currentRdxFile = 1;
@@ -147,7 +158,7 @@ namespace RECV_Editor
             MessageBox.Show($"The process has finished successfully in {sw.Elapsed.TotalSeconds} seconds.");
         }
 
-        public static void InsertAll(string inputFolder, string outputFolder, string originalDataFolder, Table table, IProgress<ProgressInfo> progress)
+        public static void InsertAll(string inputFolder, string outputFolder, string originalDataFolder, string tablesFolder, Languages language, IProgress<ProgressInfo> progress)
         {
             if (string.IsNullOrEmpty(inputFolder))
             {
@@ -174,16 +185,7 @@ namespace RECV_Editor
                 throw new DirectoryNotFoundException($"Directory \"{originalDataFolder}\" does not exist!");
             }
 
-            if (table == null)
-            {
-                throw new ArgumentNullException(nameof(table));
-            }
-
-            string original_RDX_LNK1 = Path.Combine(originalDataFolder, ENG_RDX_LNK1_AFS_PATH);
-            string input_RDX_LNK1 = Path.Combine(inputFolder, ENG_RDX_LNK1_AFS_PATH);
-            string input_RDX_LNK1_folder = Path.ChangeExtension(input_RDX_LNK1, null);
-            string output_RDX_LNK1 = Path.Combine(outputFolder, ENG_RDX_LNK1_AFS_PATH);
-            string output_RDX_LNK1_folder = Path.ChangeExtension(output_RDX_LNK1, null);
+            Table table = GetTableFromLanguage(tablesFolder, language);
 
             // Begin process
 
@@ -194,59 +196,72 @@ namespace RECV_Editor
 
             Logger.Append("Insert all process has begun. ----------------------------------------------------------------------");
 
+            // Generate some paths based on selected language
+
+            string languageCode = languageCodes[(int)language];
+            int languageIndex = languageIndices[(int)language];
+            string outputLanguageFolder = Path.Combine(outputFolder, languageCode);
+            string SYSMES_ALD_Path = $"{languageCode}/SYSMES{languageIndex}.ALD";
+            string RDX_LNK_AFS_Path = $"{languageCode}/RDX_LNK{languageIndex}.AFS";
+
+            string original_RDX_LNK = Path.Combine(originalDataFolder, RDX_LNK_AFS_Path);
+            string input_RDX_LNK = Path.Combine(inputFolder, RDX_LNK_AFS_Path);
+            string input_RDX_LNK_folder = Path.ChangeExtension(input_RDX_LNK, null);
+            string output_RDX_LNK = Path.Combine(outputFolder, RDX_LNK_AFS_Path);
+            string output_RDX_LNK_folder = Path.ChangeExtension(output_RDX_LNK, null);
+
             // Delete existing output folder if it exists
 
-            if (Directory.Exists(outputFolder))
+            if (Directory.Exists(outputLanguageFolder))
             {
-                Logger.Append($"Deleting \"{outputFolder}\" folder...");
-                Directory.Delete(outputFolder, true);
+                Logger.Append($"Deleting \"{outputLanguageFolder}\" folder...");
+                Directory.Delete(outputLanguageFolder, true);
             }
 
             // Create output folder
 
-            string outputEngFolder = Path.Combine(outputFolder, ENG_PATH);
-            if (!Directory.Exists(outputEngFolder))
+            if (!Directory.Exists(outputLanguageFolder))
             {
-                Logger.Append($"Creating \"{outputEngFolder}\" folder...");
-                Directory.CreateDirectory(outputEngFolder);
+                Logger.Append($"Creating \"{outputLanguageFolder}\" folder...");
+                Directory.CreateDirectory(outputLanguageFolder);
             }
 
             // Generate SYSMES1.ALD
 
-            string SYSMES1 = Path.Combine(outputFolder, ENG_SYSMES1_ALD_PATH);
+            string SYSMES = Path.Combine(outputFolder, SYSMES_ALD_Path);
 
-            Logger.Append($"Generating \"{SYSMES1}\"...");
-            progress?.Report(new ProgressInfo($"Generating \"{ENG_SYSMES1_ALD_PATH}\"...", ++currentProgressValue, MAX_INSERTION_PROGRESS_STEPS));
+            Logger.Append($"Generating \"{SYSMES}\"...");
+            progress?.Report(new ProgressInfo($"Generating \"{SYSMES_ALD_Path}\"...", ++currentProgressValue, MAX_INSERTION_PROGRESS_STEPS));
 
-            ALD.Insert(Path.ChangeExtension(Path.Combine(inputFolder, ENG_SYSMES1_ALD_PATH), null), SYSMES1, table);
+            ALD.Insert(Path.ChangeExtension(Path.Combine(inputFolder, SYSMES_ALD_Path), null), SYSMES, table);
 
             // Extract original RDX_LNK1 file
 
-            if (!File.Exists(original_RDX_LNK1))
+            if (!File.Exists(original_RDX_LNK))
             {
-                throw new FileNotFoundException($"File \"{original_RDX_LNK1}\" does not exist!", original_RDX_LNK1);
+                throw new FileNotFoundException($"File \"{original_RDX_LNK}\" does not exist!", original_RDX_LNK);
             }
 
-            Logger.Append($"Extracting \"{original_RDX_LNK1}\"...");
-            progress?.Report(new ProgressInfo($"Extracting \"{ENG_RDX_LNK1_AFS_PATH}\"...", ++currentProgressValue, MAX_INSERTION_PROGRESS_STEPS));
+            Logger.Append($"Extracting \"{original_RDX_LNK}\"...");
+            progress?.Report(new ProgressInfo($"Extracting \"{RDX_LNK_AFS_Path}\"...", ++currentProgressValue, MAX_INSERTION_PROGRESS_STEPS));
 
             AFS.NotifyProgress += AFS_NotifyProgress;
-            AFS.ExtractAFS(original_RDX_LNK1, output_RDX_LNK1_folder);
+            AFS.ExtractAFS(original_RDX_LNK, output_RDX_LNK_folder);
             AFS.NotifyProgress -= AFS_NotifyProgress;
 
             // Generate RDX files
 
-            if (!Directory.Exists(input_RDX_LNK1_folder))
+            if (!Directory.Exists(input_RDX_LNK_folder))
             {
-                throw new DirectoryNotFoundException($"Directory \"{input_RDX_LNK1_folder}\" does not exist!");
+                throw new DirectoryNotFoundException($"Directory \"{input_RDX_LNK_folder}\" does not exist!");
             }
 
-            string[] inputRdxPaths = Directory.GetDirectories(input_RDX_LNK1_folder);
-            string[] outputRdxFiles = Directory.GetFiles(output_RDX_LNK1_folder);
+            string[] inputRdxPaths = Directory.GetDirectories(input_RDX_LNK_folder);
+            string[] outputRdxFiles = Directory.GetFiles(output_RDX_LNK_folder);
 
             if (inputRdxPaths.Length != outputRdxFiles.Length)
             {
-                throw new InvalidDataException($"There should be {outputRdxFiles.Length} RDX folder, but found {inputRdxPaths.Length} instead in \"{input_RDX_LNK1_folder}\"");
+                throw new InvalidDataException($"There should be {outputRdxFiles.Length} RDX folder, but found {inputRdxPaths.Length} instead in \"{input_RDX_LNK_folder}\"");
             }
 
             int currentRdxFile = 1;
@@ -281,14 +296,14 @@ namespace RECV_Editor
 
             // Insert RDX files into new RDX_LNK1 file
 
-            Logger.Append($"Generating \"{output_RDX_LNK1}\"...");
-            progress?.Report(new ProgressInfo($"Generating \"{output_RDX_LNK1}\"...", ++currentProgressValue, MAX_INSERTION_PROGRESS_STEPS));
+            Logger.Append($"Generating \"{output_RDX_LNK}\"...");
+            progress?.Report(new ProgressInfo($"Generating \"{output_RDX_LNK}\"...", ++currentProgressValue, MAX_INSERTION_PROGRESS_STEPS));
 
             AFS.NotifyProgress += AFS_NotifyProgress;
-            AFS.CreateAFS(output_RDX_LNK1_folder, output_RDX_LNK1);
+            AFS.CreateAFS(output_RDX_LNK_folder, output_RDX_LNK);
             AFS.NotifyProgress -= AFS_NotifyProgress;
 
-            Directory.Delete(output_RDX_LNK1_folder, true);
+            Directory.Delete(output_RDX_LNK_folder, true);
 
             // Finish process
 
@@ -304,6 +319,18 @@ namespace RECV_Editor
         static void AFS_NotifyProgress(AFS.NotificationTypes type, string message)
         {
             Logger.Append(message, (Logger.LogTypes)type);
+        }
+
+        public static Table GetTableFromLanguage(string tablesFolder, Languages language)
+        {
+            string tableFile = $"{Path.Combine(tablesFolder, languageCodes[(int)language])}.tbl";
+
+            if (!File.Exists(tableFile))
+            {
+                throw new FileNotFoundException($"Table file \"{tableFile}\" has not been found.");
+            }
+
+            return new Table(tableFile);
         }
     }
 }

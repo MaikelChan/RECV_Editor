@@ -49,6 +49,9 @@ namespace RECV_Editor.File_Formats
                 {
                     uint blockSize = br.ReadUInt32();
 
+                    long blockStartPosition = aldStream.Position;
+                    long blockEndPosition = blockStartPosition + blockSize;
+
                     // Obtain all texts in the block
                     using (SubStream blockStream = new SubStream(aldStream, 0, blockSize, true))
                     {
@@ -60,7 +63,8 @@ namespace RECV_Editor.File_Formats
                     }
 
                     // Check if there are other blocks after this one
-                    if (aldStream.Position >= aldStream.Length) break;
+                    if (blockEndPosition >= aldStream.Length) break;
+                    aldStream.Position = blockEndPosition;
                     ushort value = br.ReadUInt16();
                     if (value == FILE_END_PADDING) break;
 
