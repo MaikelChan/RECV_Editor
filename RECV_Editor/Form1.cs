@@ -147,6 +147,8 @@ namespace RECV_Editor
         {
             isProcessRunning = value;
 
+            PlatformLabel.Enabled = !value;
+            PlatformComboBox.Enabled = !value;
             LanguageLabel.Enabled = !value;
             LanguageComboBox.Enabled = !value;
 
