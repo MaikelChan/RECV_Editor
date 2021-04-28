@@ -120,8 +120,8 @@ namespace RECV_Editor
         {
             Table table = recv.GetTableFromLanguage(settings.Data.TablesFolder, 0);
 
-            ALD.Extract(@"D:\Romhacking\Proyectos\Resident Evil Code Veronica\ENG\SYSMES1.ALD", @"D:\Romhacking\Proyectos\Resident Evil Code Veronica\Project\TEST", table);
-            ALD.Insert(@"D:\Romhacking\Proyectos\Resident Evil Code Veronica\Project\TEST", @"D:\Romhacking\Proyectos\Resident Evil Code Veronica\Project\TEST.ALD", table);
+            ALD.Extract(@"D:\Romhacking\Proyectos\Resident Evil Code Veronica\ENG\SYSMES1.ALD", @"D:\Romhacking\Proyectos\Resident Evil Code Veronica\Project\TEST", table, false);
+            ALD.Insert(@"D:\Romhacking\Proyectos\Resident Evil Code Veronica\Project\TEST", @"D:\Romhacking\Proyectos\Resident Evil Code Veronica\Project\TEST.ALD", table, false);
 
             //using (FileStream fs = File.OpenRead(@"D:\Romhacking\Proyectos\Resident Evil Code Veronica\Project\00000082.text"))
             //{
@@ -145,7 +145,7 @@ namespace RECV_Editor
             File.WriteAllBytes(prsFile + ".unc", uncompressedPrsData);
 
             Table table = recv.GetTableFromLanguage(settings.Data.TablesFolder, 0);
-            RDX.Extract(uncompressedPrsData, prsFile + "_output", table);
+            RDX.Extract(uncompressedPrsData, prsFile + "_output", table, false);
         }
 
         #endregion

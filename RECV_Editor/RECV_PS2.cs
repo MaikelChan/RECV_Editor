@@ -20,6 +20,9 @@ namespace RECV_Editor
         readonly static int[] languageIndices = new int[] { 1, 2, 5, 4 };
         protected override int[] LanguageIndices => languageIndices;
 
+        protected override int DiscCount => 1;
+        protected override bool IsBigEndian => false;
+
         //public enum Languages { English, French, German, Spanish }
 
         const int MAX_EXTRACTION_PROGRESS_STEPS = 4;
@@ -44,6 +47,8 @@ namespace RECV_Editor
                 throw new ArgumentNullException(nameof(outputFolder));
             }
 
+            outputFolder = Path.Combine(outputFolder, Platforms.PS2.ToString());
+
             if (string.IsNullOrEmpty(tablesFolder))
             {
                 throw new ArgumentNullException(nameof(tablesFolder));
@@ -64,8 +69,6 @@ namespace RECV_Editor
 
             string languageCode = languageCodes[language];
             int languageIndex = languageIndices[language];
-            string SYSMES_ALD_Path = $"{languageCode}/SYSMES{languageIndex}.ALD";
-            string RDX_LNK_AFS_Path = $"{languageCode}/RDX_LNK{languageIndex}.AFS";
 
             // Create output <languageCode> folder
 
@@ -76,40 +79,29 @@ namespace RECV_Editor
                 Directory.CreateDirectory(outputLanguageFolder);
             }
 
-            // Extract SYSMES1.ALD
+            // Extract SYSMES
 
-            string SYSMES = Path.Combine(inputFolder, SYSMES_ALD_Path);
-
-            if (!File.Exists(SYSMES))
             {
-                throw new FileNotFoundException($"File \"{SYSMES}\" does not exist!", SYSMES);
+                string sysmesInputFolder = Path.Combine(inputFolder, languageCode);
+                string sysmesFileName = $"SYSMES{languageIndex}.ALD";
+                string sysmesOutputFolder = Path.ChangeExtension(Path.Combine(outputFolder, languageCode, sysmesFileName), null);
+                ExtractSysmes(sysmesInputFolder, sysmesFileName, sysmesOutputFolder, table, progress, ref currentProgressValue, MAX_EXTRACTION_PROGRESS_STEPS);
             }
-
-            Logger.Append($"Extracting \"{SYSMES}\"...");
-            progress?.Report(new ProgressInfo($"Extracting \"{SYSMES_ALD_Path}\"...", ++currentProgressValue, MAX_EXTRACTION_PROGRESS_STEPS));
-
-            ALD.Extract(SYSMES, Path.ChangeExtension(Path.Combine(outputFolder, SYSMES_ALD_Path), null), table);
 
             // Extract AFS files
 
-            string RDX_LNK = Path.Combine(inputFolder, RDX_LNK_AFS_Path);
+            string rdxLnkOutputFolder;
 
-            if (!File.Exists(RDX_LNK))
             {
-                throw new FileNotFoundException($"File \"{RDX_LNK}\" does not exist!", RDX_LNK);
+                string rdxLnkInputFolder = Path.Combine(inputFolder, languageCode);
+                string rdxLnkFileName = $"RDX_LNK{languageIndex}.AFS";
+                rdxLnkOutputFolder = Path.ChangeExtension(Path.Combine(outputFolder, languageCode, rdxLnkFileName), null);
+                ExtractRdxLnk(rdxLnkInputFolder, rdxLnkFileName, rdxLnkOutputFolder, progress, ref currentProgressValue, MAX_EXTRACTION_PROGRESS_STEPS);
             }
-
-            Logger.Append($"Extracting \"{RDX_LNK}\"...");
-            progress?.Report(new ProgressInfo($"Extracting \"{RDX_LNK_AFS_Path}\"...", ++currentProgressValue, MAX_EXTRACTION_PROGRESS_STEPS));
-
-            string RDX_LNK_OutputPath = Path.ChangeExtension(Path.Combine(outputFolder, RDX_LNK_AFS_Path), null);
-            AFS.NotifyProgress += AFS_NotifyProgress;
-            AFS.ExtractAFS(RDX_LNK, RDX_LNK_OutputPath);
-            AFS.NotifyProgress -= AFS_NotifyProgress;
 
             // Decompress files in RDX_LNK1
 
-            string[] rdxFiles = Directory.GetFiles(RDX_LNK_OutputPath);
+            string[] rdxFiles = Directory.GetFiles(rdxLnkOutputFolder);
 
             currentProgressValue++;
             int currentRdxFile = 1;
@@ -130,7 +122,7 @@ namespace RECV_Editor
 
                 File.Delete(rdxFiles[f]);
 
-                RDX.Results result = RDX.Extract(rdxUncompressedData, rdxFiles[f], table);
+                RDX.Results result = RDX.Extract(rdxUncompressedData, rdxFiles[f], table, IsBigEndian);
                 if (result == RDX.Results.NotValidRdxFile) Logger.Append($"\"{rdxFiles[f]}\" is not a valid RDX file. Ignoring.", Logger.LogTypes.Warning);
 #if MULTITHREADING
             });
@@ -156,6 +148,8 @@ namespace RECV_Editor
                 throw new ArgumentNullException(nameof(inputFolder));
             }
 
+            inputFolder = Path.Combine(inputFolder, Platforms.PS2.ToString());
+
             if (!Directory.Exists(inputFolder))
             {
                 throw new DirectoryNotFoundException($"Directory \"{inputFolder}\" does not exist!");
@@ -165,6 +159,8 @@ namespace RECV_Editor
             {
                 throw new ArgumentNullException(nameof(outputFolder));
             }
+
+            outputFolder = Path.Combine(outputFolder, Platforms.PS2.ToString());
 
             if (string.IsNullOrEmpty(originalDataFolder))
             {
@@ -226,7 +222,7 @@ namespace RECV_Editor
             Logger.Append($"Generating \"{SYSMES}\"...");
             progress?.Report(new ProgressInfo($"Generating \"{SYSMES_ALD_Path}\"...", ++currentProgressValue, MAX_INSERTION_PROGRESS_STEPS));
 
-            ALD.Insert(Path.ChangeExtension(Path.Combine(inputFolder, SYSMES_ALD_Path), null), SYSMES, table);
+            ALD.Insert(Path.ChangeExtension(Path.Combine(inputFolder, SYSMES_ALD_Path), null), SYSMES, table, IsBigEndian);
 
             // Extract original RDX_LNK1 file
 
@@ -276,7 +272,7 @@ namespace RECV_Editor
 
                 using (MemoryStream ms = new MemoryStream(rdxUncompressedData))
                 {
-                    RDX.Insert(inputRdxPaths[r], ms, table);
+                    RDX.Insert(inputRdxPaths[r], ms, table, IsBigEndian);
                 }
 
                 rdxData = PRS.Compress(rdxUncompressedData);

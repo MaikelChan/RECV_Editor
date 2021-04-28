@@ -12,7 +12,7 @@ namespace RECV_Editor.File_Formats
 
         public enum Results { Success, NotValidRdxFile }
 
-        public static Results Extract(string inputFile, string outputFolder, Table table)
+        public static Results Extract(string inputFile, string outputFolder, Table table, bool bigEndian)
         {
             if (!File.Exists(inputFile))
             {
@@ -21,11 +21,11 @@ namespace RECV_Editor.File_Formats
 
             using (FileStream fs = File.OpenRead(inputFile))
             {
-                return Extract(fs, outputFolder, table);
+                return Extract(fs, outputFolder, table, bigEndian);
             }
         }
 
-        public static Results Extract(byte[] rdxData, string outputFolder, Table table)
+        public static Results Extract(byte[] rdxData, string outputFolder, Table table, bool bigEndian)
         {
             if (rdxData == null)
             {
@@ -34,11 +34,11 @@ namespace RECV_Editor.File_Formats
 
             using (MemoryStream ms = new MemoryStream(rdxData))
             {
-                return Extract(ms, outputFolder, table);
+                return Extract(ms, outputFolder, table, bigEndian);
             }
         }
 
-        public static Results Extract(Stream rdxStream, string outputFolder, Table table)
+        public static Results Extract(Stream rdxStream, string outputFolder, Table table, bool bigEndian)
         {
             if (rdxStream == null)
             {
@@ -102,7 +102,7 @@ namespace RECV_Editor.File_Formats
 
                     using (SubStream textsStream = new SubStream(rdxStream, 0, rdxStream.Length - rdxStream.Position, true))
                     {
-                        string texts = Texts.Extract(textsStream, table);
+                        string texts = Texts.Extract(textsStream, table, bigEndian);
                         File.WriteAllText(Path.Combine(outputFolder, STRINGS_FILE_NAME), texts);
                     }
                 }
@@ -137,7 +137,7 @@ namespace RECV_Editor.File_Formats
             return Results.Success;
         }
 
-        public static void Insert(string inputFolder, string outputFile, Table table)
+        public static void Insert(string inputFolder, string outputFile, Table table, bool bigEndian)
         {
             if (string.IsNullOrEmpty(outputFile))
             {
@@ -151,11 +151,11 @@ namespace RECV_Editor.File_Formats
 
             using (FileStream outputStream = new FileStream(outputFile, FileMode.Open, FileAccess.ReadWrite))
             {
-                Insert(inputFolder, outputStream, table);
+                Insert(inputFolder, outputStream, table, bigEndian);
             }
         }
 
-        public static void Insert(string inputFolder, Stream rdxStream, Table table)
+        public static void Insert(string inputFolder, Stream rdxStream, Table table, bool bigEndian)
         {
             if (string.IsNullOrEmpty(inputFolder))
             {
@@ -250,7 +250,7 @@ namespace RECV_Editor.File_Formats
 
                     using (MemoryStream textsStream = new MemoryStream())
                     {
-                        Texts.Insert(texts, textsStream, table);
+                        Texts.Insert(texts, textsStream, table, bigEndian);
 
                         if (textsStream.Length > subBlock14Size)
                         {

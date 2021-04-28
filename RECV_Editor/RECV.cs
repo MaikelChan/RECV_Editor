@@ -29,13 +29,11 @@ namespace RECV_Editor
         protected abstract string[] LanguageCodes { get; }
         protected abstract int[] LanguageIndices { get; }
 
-        public abstract void ExtractAll(string inputFolder, string outputFolder, string tablesFolder, int languageIndex, IProgress<ProgressInfo> progress);
-        public abstract void InsertAll(string inputFolder, string outputFolder, string originalDataFolder, string tablesFolder, int languageIndex, IProgress<ProgressInfo> progress);
+        protected abstract int DiscCount { get; }
+        protected abstract bool IsBigEndian { get; }
 
-        protected void AFS_NotifyProgress(AFS.NotificationTypes type, string message)
-        {
-            Logger.Append(message, (Logger.LogTypes)type);
-        }
+        public abstract void ExtractAll(string inputFolder, string outputFolder, string tablesFolder, int language, IProgress<ProgressInfo> progress);
+        public abstract void InsertAll(string inputFolder, string outputFolder, string originalDataFolder, string tablesFolder, int language, IProgress<ProgressInfo> progress);
 
         public Table GetTableFromLanguage(string tablesFolder, int languageIndex)
         {
@@ -58,5 +56,46 @@ namespace RECV_Editor
                 default: throw new NotImplementedException($"Platform {platform} is not implemented.");
             }
         }
+
+        protected void AFS_NotifyProgress(AFS.NotificationTypes type, string message)
+        {
+            Logger.Append(message, (Logger.LogTypes)type);
+        }
+
+        #region Extraction methods
+
+        protected void ExtractSysmes(string sysmesFolder, string sysmesFileName, string outputFolder, Table table, IProgress<ProgressInfo> progress, ref int currentProgressValue, int maxProgressSteps)
+        {
+            string sysmesPath = Path.Combine(sysmesFolder, sysmesFileName);
+
+            if (!File.Exists(sysmesPath))
+            {
+                throw new FileNotFoundException($"File \"{sysmesPath}\" does not exist!", sysmesPath);
+            }
+
+            Logger.Append($"Extracting \"{sysmesPath}\"...");
+            progress?.Report(new ProgressInfo($"Extracting \"{sysmesFileName}\"...", ++currentProgressValue, maxProgressSteps));
+
+            ALD.Extract(sysmesPath, outputFolder, table, IsBigEndian);
+        }
+
+        protected void ExtractRdxLnk(string rdxLnkFolder, string rdxLinkFileName, string outputFolder, IProgress<ProgressInfo> progress, ref int currentProgressValue, int maxProgressSteps)
+        {
+            string rdxLnkPath = Path.Combine(rdxLnkFolder, rdxLinkFileName);
+
+            if (!File.Exists(rdxLnkPath))
+            {
+                throw new FileNotFoundException($"File \"{rdxLnkPath}\" does not exist!", rdxLnkPath);
+            }
+
+            Logger.Append($"Extracting \"{rdxLnkPath}\"...");
+            progress?.Report(new ProgressInfo($"Extracting \"{rdxLinkFileName}\"...", ++currentProgressValue, maxProgressSteps));
+
+            AFS.NotifyProgress += AFS_NotifyProgress;
+            AFS.ExtractAFS(rdxLnkPath, outputFolder);
+            AFS.NotifyProgress -= AFS_NotifyProgress;
+        }
+
+        #endregion
     }
 }

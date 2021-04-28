@@ -1,4 +1,8 @@
-﻿using System;
+﻿using RECV_Editor.File_Formats;
+using System;
+using System.Diagnostics;
+using System.IO;
+using System.Windows.Forms;
 
 namespace RECV_Editor
 {
@@ -13,9 +17,97 @@ namespace RECV_Editor
         readonly static int[] languageIndices = new int[] { 0, 1, 2, 3, 4, 5, 6 };
         protected override int[] LanguageIndices => languageIndices;
 
-        public override void ExtractAll(string inputFolder, string outputFolder, string tablesFolder, int languageIndex, IProgress<ProgressInfo> progress)
+        protected override int DiscCount => 2;
+        protected override bool IsBigEndian => true;
+
+        // TODO: Move to RECV?
+        const int MAX_EXTRACTION_PROGRESS_STEPS = 4;
+        const int MAX_INSERTION_PROGRESS_STEPS = 5;
+
+        public override void ExtractAll(string inputFolder, string outputFolder, string tablesFolder, int language, IProgress<ProgressInfo> progress)
         {
-            throw new NotImplementedException();
+            if (string.IsNullOrEmpty(inputFolder))
+            {
+                throw new ArgumentNullException(nameof(inputFolder));
+            }
+
+            if (string.IsNullOrEmpty(outputFolder))
+            {
+                throw new ArgumentNullException(nameof(outputFolder));
+            }
+
+            if (string.IsNullOrEmpty(tablesFolder))
+            {
+                throw new ArgumentNullException(nameof(tablesFolder));
+            }
+
+            Table table = GetTableFromLanguage(tablesFolder, language);
+
+            // Begin process
+
+            Stopwatch sw = new Stopwatch();
+            sw.Start();
+
+            int currentProgressValue = 0;
+
+            Logger.Append("Extract all process has begun. ---------------------------------------------------------------------");
+
+            for (int disc = 1; disc < DiscCount + 1; disc++)
+            {
+                string discInputFolder = Path.Combine(inputFolder, Platforms.GameCube.ToString(), $"Disc {disc}", "files");
+
+                if (!Directory.Exists(discInputFolder))
+                {
+                    throw new DirectoryNotFoundException($"Directory \"{discInputFolder}\" does not exist!");
+                }
+
+                string discOutputFolder = Path.Combine(outputFolder, Platforms.GameCube.ToString(), $"Disc {disc}");
+
+                // Generate some paths based on selected language and current disc
+
+                string languageCode = languageCodes[language];
+                int languageIndex = languageIndices[language];
+                string languageIndexString = languageIndex == 0 ? string.Empty : languageIndex.ToString();
+
+                // Create output <languageCode> folder
+
+                string outputLanguageFolder = Path.Combine(discOutputFolder, languageCode);
+                if (!Directory.Exists(outputLanguageFolder))
+                {
+                    Logger.Append($"Creating \"{outputLanguageFolder}\" folder...");
+                    Directory.CreateDirectory(outputLanguageFolder);
+                }
+
+                // Extract SYSMES
+
+                {
+                    string sysmesInputFolder = discInputFolder;
+                    string sysmesFileName = $"sysmes{languageIndexString}.ald";
+                    string sysmesOutputFolder = Path.ChangeExtension(Path.Combine(discOutputFolder, languageCode, sysmesFileName), null);
+                    ExtractSysmes(sysmesInputFolder, sysmesFileName, sysmesOutputFolder, table, progress, ref currentProgressValue, MAX_EXTRACTION_PROGRESS_STEPS * DiscCount);
+                }
+
+                // Extract AFS files
+
+                string rdxLnkOutputFolder;
+
+                {
+                    string rdxLnkInputFolder = discInputFolder;
+                    string rdxLnkFileName = $"rdx_lnk{disc}.afs";
+                    rdxLnkOutputFolder = Path.ChangeExtension(Path.Combine(discOutputFolder, rdxLnkFileName), null);
+                    ExtractRdxLnk(rdxLnkInputFolder, rdxLnkFileName, rdxLnkOutputFolder, progress, ref currentProgressValue, MAX_EXTRACTION_PROGRESS_STEPS * DiscCount);
+                }
+            }
+
+            // Finish process
+
+            progress?.Report(new ProgressInfo("Done!", ++currentProgressValue, MAX_EXTRACTION_PROGRESS_STEPS * DiscCount));
+            Logger.Append("Extract all process has finished. ------------------------------------------------------------------");
+
+            GC.Collect();
+
+            sw.Stop();
+            MessageBox.Show($"The process has finished successfully in {sw.Elapsed.TotalSeconds} seconds.");
         }
 
         public override void InsertAll(string inputFolder, string outputFolder, string originalDataFolder, string tablesFolder, int languageIndex, IProgress<ProgressInfo> progress)

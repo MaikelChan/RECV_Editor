@@ -12,7 +12,7 @@ namespace RECV_Editor.File_Formats
         const string TEXT_END_STRING = "[TEXT END]----------------------------------------------";
         const string BLOCK_END_STRING = "[BLOCK END]---------------------------------------------";
 
-        public static string Extract(string inputFile, Table table)
+        public static string Extract(string inputFile, Table table, bool bigEndian)
         {
             if (string.IsNullOrEmpty(inputFile))
             {
@@ -26,11 +26,11 @@ namespace RECV_Editor.File_Formats
 
             using (FileStream fs = File.OpenRead(inputFile))
             {
-                return Extract(fs, table);
+                return Extract(fs, table, bigEndian);
             }
         }
 
-        public static string Extract(Stream textStream, Table table)
+        public static string Extract(Stream textStream, Table table, bool bigEndian)
         {
             if (textStream == null)
             {
@@ -47,14 +47,14 @@ namespace RECV_Editor.File_Formats
 
             using (BinaryReader br = new BinaryReader(textStream, Encoding.UTF8, true))
             {
-                uint numberOfTexts = br.ReadUInt32();
+                uint numberOfTexts = br.ReadUInt32Endian(bigEndian);
 
                 uint[] pointers = new uint[numberOfTexts];
 
                 // Read each pointer
                 for (int p = 0; p < numberOfTexts; p++)
                 {
-                    pointers[p] = br.ReadUInt32();
+                    pointers[p] = br.ReadUInt32Endian(bigEndian);
                 }
 
                 // Read each text
@@ -67,7 +67,7 @@ namespace RECV_Editor.File_Formats
                     // Read each text character until we reach an TEXT_END code
                     for (; ; )
                     {
-                        ushort character = br.ReadUInt16();
+                        ushort character = br.ReadUInt16Endian(bigEndian);
 
                         if (character == TEXT_END)
                         {
@@ -100,7 +100,7 @@ namespace RECV_Editor.File_Formats
                 }
 
                 // Make sure of being at the end of the text data block
-                //ushort value = br.ReadUInt16();
+                //ushort value = br.ReadUInt16Endian(bigEndian);
                 //if (value != BLOCK_END && value != 0x0)
                 //{
                 //    Logger.Append($"Expected end of block but 0x{value:X} found at 0x{(textStream.Position - 2):X}. This could mean that there are some unused contents at the end of this file.", Logger.LogTypes.Warning);
@@ -112,7 +112,7 @@ namespace RECV_Editor.File_Formats
             return sb.ToString();
         }
 
-        public static void Insert(string inputText, Stream outputStream, Table table)
+        public static void Insert(string inputText, Stream outputStream, Table table, bool bigEndian)
         {
             if (string.IsNullOrEmpty(inputText))
             {
@@ -147,7 +147,7 @@ namespace RECV_Editor.File_Formats
                         {
                             uint padding = Utils.Padding((uint)ms.Position, 4);
                             padding = padding - (uint)ms.Position;
-                            for (uint p = 0; p < padding; p++) bw.Write((byte)0xFF);
+                            for (uint p = 0; p < padding; p++) bw.WriteEndian((byte)0xFF, bigEndian);
                             break;
                         }
 
@@ -160,10 +160,10 @@ namespace RECV_Editor.File_Formats
 
                             for (int h = 0; h < hex.Length; h++)
                             {
-                                bw.Write(hex[h]);
+                                bw.WriteEndian(hex[h], bigEndian);
                             }
 
-                            bw.Write(TEXT_END);
+                            bw.WriteEndian(TEXT_END, bigEndian);
 
                             sb.Clear();
 
@@ -180,11 +180,11 @@ namespace RECV_Editor.File_Formats
 
                 using (BinaryWriter bw = new BinaryWriter(outputStream, Encoding.UTF8, true))
                 {
-                    bw.Write((uint)textPositions.Count);
+                    bw.WriteEndian((uint)textPositions.Count, bigEndian);
 
                     for (int tp = 0; tp < textPositions.Count; tp++)
                     {
-                        bw.Write((uint)(textPositions[tp] + 4 + (4 * textPositions.Count)));
+                        bw.WriteEndian((uint)(textPositions[tp] + 4 + (4 * textPositions.Count)), bigEndian);
                     }
 
                     ms.Position = 0;

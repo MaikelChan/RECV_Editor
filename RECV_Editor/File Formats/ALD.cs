@@ -8,7 +8,7 @@ namespace RECV_Editor.File_Formats
     {
         const ushort FILE_END_PADDING = 0xFFFF;
 
-        public static void Extract(string inputFile, string outputFolder, Table table)
+        public static void Extract(string inputFile, string outputFolder, Table table, bool bigEndian)
         {
             if (!File.Exists(inputFile))
             {
@@ -17,11 +17,11 @@ namespace RECV_Editor.File_Formats
 
             using (FileStream fs = File.OpenRead(inputFile))
             {
-                Extract(fs, outputFolder, table);
+                Extract(fs, outputFolder, table, bigEndian);
             }
         }
 
-        public static void Extract(Stream aldStream, string outputFolder, Table table)
+        public static void Extract(Stream aldStream, string outputFolder, Table table, bool bigEndian)
         {
             if (aldStream == null)
             {
@@ -47,7 +47,7 @@ namespace RECV_Editor.File_Formats
                 // Read each block
                 for (; ; )
                 {
-                    uint blockSize = br.ReadUInt32();
+                    uint blockSize = br.ReadUInt32Endian(bigEndian);
 
                     long blockStartPosition = aldStream.Position;
                     long blockEndPosition = blockStartPosition + blockSize;
@@ -55,7 +55,7 @@ namespace RECV_Editor.File_Formats
                     // Obtain all texts in the block
                     using (SubStream blockStream = new SubStream(aldStream, 0, blockSize, true))
                     {
-                        string texts = Texts.Extract(blockStream, table);
+                        string texts = Texts.Extract(blockStream, table, bigEndian);
 
                         // Write all the texts in the block to a txt file
                         string outputFile = Path.Combine(outputFolder, $"{currentBlock:00}.txt");
@@ -65,7 +65,7 @@ namespace RECV_Editor.File_Formats
                     // Check if there are other blocks after this one
                     if (blockEndPosition >= aldStream.Length) break;
                     aldStream.Position = blockEndPosition;
-                    ushort value = br.ReadUInt16();
+                    ushort value = br.ReadUInt16Endian(bigEndian);
                     if (value == FILE_END_PADDING) break;
 
                     aldStream.Position -= 2;
@@ -74,7 +74,7 @@ namespace RECV_Editor.File_Formats
             }
         }
 
-        public static void Insert(string inputFolder, string outputAld, Table table)
+        public static void Insert(string inputFolder, string outputAld, Table table, bool bigEndian)
         {
             if (string.IsNullOrEmpty(outputAld))
             {
@@ -83,11 +83,11 @@ namespace RECV_Editor.File_Formats
 
             using (FileStream aldStream = File.Create(outputAld))
             {
-                Insert(inputFolder, aldStream, table);
+                Insert(inputFolder, aldStream, table, bigEndian);
             }
         }
 
-        public static void Insert(string inputFolder, Stream aldStream, Table table)
+        public static void Insert(string inputFolder, Stream aldStream, Table table, bool bigEndian)
         {
             if (string.IsNullOrEmpty(inputFolder))
             {
@@ -119,16 +119,16 @@ namespace RECV_Editor.File_Formats
 
                     using (MemoryStream ms = new MemoryStream())
                     {
-                        Texts.Insert(text, ms, table);
+                        Texts.Insert(text, ms, table, bigEndian);
 
-                        bw.Write((uint)ms.Length);
+                        bw.WriteEndian((uint)ms.Length, bigEndian);
 
                         ms.Position = 0;
                         ms.CopyTo(aldStream);
                     }
                 }
 
-                bw.Write(0xFFFFFFFF);
+                bw.WriteEndian(0xFFFFFFFF, bigEndian);
             }
         }
     }
