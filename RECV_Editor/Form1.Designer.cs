@@ -70,7 +70,7 @@
             | System.Windows.Forms.AnchorStyles.Right)));
             this.DebugGroup.Controls.Add(this.DebugExtractButton);
             this.DebugGroup.Controls.Add(this.DebugDecompressButton);
-            this.DebugGroup.Location = new System.Drawing.Point(12, 112);
+            this.DebugGroup.Location = new System.Drawing.Point(12, 102);
             this.DebugGroup.Name = "DebugGroup";
             this.DebugGroup.Size = new System.Drawing.Size(356, 66);
             this.DebugGroup.TabIndex = 2;
@@ -81,7 +81,7 @@
             // 
             this.ExtractAllButton.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-            this.ExtractAllButton.Location = new System.Drawing.Point(12, 62);
+            this.ExtractAllButton.Location = new System.Drawing.Point(12, 56);
             this.ExtractAllButton.Name = "ExtractAllButton";
             this.ExtractAllButton.Size = new System.Drawing.Size(175, 41);
             this.ExtractAllButton.TabIndex = 3;
@@ -94,7 +94,7 @@
             this.StatusStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.StatusProgressBar,
             this.StatusLabel});
-            this.StatusStrip.Location = new System.Drawing.Point(0, 183);
+            this.StatusStrip.Location = new System.Drawing.Point(0, 173);
             this.StatusStrip.Name = "StatusStrip";
             this.StatusStrip.Size = new System.Drawing.Size(380, 22);
             this.StatusStrip.SizingGrip = false;
@@ -117,7 +117,7 @@
             // 
             this.InsertAllButton.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-            this.InsertAllButton.Location = new System.Drawing.Point(193, 62);
+            this.InsertAllButton.Location = new System.Drawing.Point(193, 56);
             this.InsertAllButton.Name = "InsertAllButton";
             this.InsertAllButton.Size = new System.Drawing.Size(175, 41);
             this.InsertAllButton.TabIndex = 5;
@@ -153,6 +153,7 @@
             this.PlatformComboBox.Name = "PlatformComboBox";
             this.PlatformComboBox.Size = new System.Drawing.Size(175, 21);
             this.PlatformComboBox.TabIndex = 8;
+            this.PlatformComboBox.SelectedIndexChanged += new System.EventHandler(this.PlatformComboBox_SelectedIndexChanged);
             // 
             // PlatformLabel
             // 
@@ -167,7 +168,7 @@
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(380, 205);
+            this.ClientSize = new System.Drawing.Size(380, 195);
             this.Controls.Add(this.PlatformLabel);
             this.Controls.Add(this.PlatformComboBox);
             this.Controls.Add(this.LanguageLabel);

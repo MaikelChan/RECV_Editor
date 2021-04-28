@@ -14,6 +14,8 @@ namespace RECV_Editor
         Settings settings;
         const string SETTINGS_FILE = "Settings.json";
 
+        RECV recv;
+
         bool isProcessRunning;
 
         public Form1()
@@ -42,10 +44,6 @@ namespace RECV_Editor
             string[] platforms = Enum.GetNames(typeof(RECV.Platforms));
             PlatformComboBox.Items.AddRange(platforms);
             PlatformComboBox.SelectedIndex = 0;
-
-            string[] languages = Enum.GetNames(typeof(RECV.Languages));
-            LanguageComboBox.Items.AddRange(languages);
-            LanguageComboBox.SelectedIndex = 0;
         }
 
         private void Form1_FormClosing(object sender, FormClosingEventArgs e)
@@ -61,18 +59,27 @@ namespace RECV_Editor
             }
         }
 
+        private void PlatformComboBox_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            recv = RECV.GetRECV((RECV.Platforms)PlatformComboBox.SelectedIndex);
+
+            LanguageComboBox.Items.Clear();
+            LanguageComboBox.Items.AddRange(recv.LanguageNames);
+            LanguageComboBox.SelectedIndex = 0;
+        }
+
         private async void ExtractAllButton_Click(object sender, EventArgs e)
         {
             SetProcessRunning(true);
 
-            RECV.Languages language = (RECV.Languages)LanguageComboBox.SelectedIndex;
+            int language = LanguageComboBox.SelectedIndex;
 
 #if !DEBUG
             try
             {
 #endif
             Progress<RECV.ProgressInfo> progress = new Progress<RECV.ProgressInfo>(UpdateStatus);
-            await Task.Run(() => RECV.ExtractAll(settings.Data.OriginalGameRootFolder, settings.Data.ProjectFolder, settings.Data.TablesFolder, language, progress));
+            await Task.Run(() => recv.ExtractAll(settings.Data.OriginalGameRootFolder, settings.Data.ProjectFolder, settings.Data.TablesFolder, language, progress));
 #if !DEBUG
             }
             catch (Exception ex)
@@ -89,14 +96,14 @@ namespace RECV_Editor
         {
             SetProcessRunning(true);
 
-            RECV.Languages language = (RECV.Languages)LanguageComboBox.SelectedIndex;
+            int language = LanguageComboBox.SelectedIndex;
 
 #if !DEBUG
             try
             {
 #endif
             Progress<RECV.ProgressInfo> progress = new Progress<RECV.ProgressInfo>(UpdateStatus);
-            await Task.Run(() => RECV.InsertAll(settings.Data.ProjectFolder, settings.Data.GeneratedGameRootFolder, settings.Data.OriginalGameRootFolder, settings.Data.TablesFolder, language, progress));
+            await Task.Run(() => recv.InsertAll(settings.Data.ProjectFolder, settings.Data.GeneratedGameRootFolder, settings.Data.OriginalGameRootFolder, settings.Data.TablesFolder, language, progress));
 #if !DEBUG
             }
             catch (Exception ex)
@@ -111,7 +118,7 @@ namespace RECV_Editor
 
         private void DebugExtractButton_Click(object sender, EventArgs e)
         {
-            Table table = RECV.GetTableFromLanguage(settings.Data.TablesFolder, RECV.Languages.English);
+            Table table = recv.GetTableFromLanguage(settings.Data.TablesFolder, 0);
 
             ALD.Extract(@"D:\Romhacking\Proyectos\Resident Evil Code Veronica\ENG\SYSMES1.ALD", @"D:\Romhacking\Proyectos\Resident Evil Code Veronica\Project\TEST", table);
             ALD.Insert(@"D:\Romhacking\Proyectos\Resident Evil Code Veronica\Project\TEST", @"D:\Romhacking\Proyectos\Resident Evil Code Veronica\Project\TEST.ALD", table);
@@ -137,7 +144,7 @@ namespace RECV_Editor
 
             File.WriteAllBytes(prsFile + ".unc", uncompressedPrsData);
 
-            Table table = RECV.GetTableFromLanguage(settings.Data.TablesFolder, RECV.Languages.English);
+            Table table = recv.GetTableFromLanguage(settings.Data.TablesFolder, 0);
             RDX.Extract(uncompressedPrsData, prsFile + "_output", table);
         }
 
