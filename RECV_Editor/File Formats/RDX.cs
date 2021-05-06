@@ -9,10 +9,11 @@ namespace RECV_Editor.File_Formats
 
         protected abstract bool IsBigEndian { get; }
 
-        protected abstract string[] LanguageCodes { get; }
         protected abstract uint[] LanguageSubBlockIndices { get; }
 
-        public Results Extract(string inputFile, string outputFolder, int language, Table table)
+        protected const string STRINGS_FILE_NAME = "{0}_Strings_{1}.txt";
+
+        public Results Extract(string inputFile, string rdxFileName, string outputFolder, int language, Table table)
         {
             if (!File.Exists(inputFile))
             {
@@ -21,11 +22,11 @@ namespace RECV_Editor.File_Formats
 
             using (FileStream fs = File.OpenRead(inputFile))
             {
-                return Extract(fs, outputFolder, language, table);
+                return Extract(fs, rdxFileName, outputFolder, language, table);
             }
         }
 
-        public Results Extract(byte[] rdxData, string outputFolder, int language, Table table)
+        public Results Extract(byte[] rdxData, string rdxFileName, string outputFolder, int language, Table table)
         {
             if (rdxData == null)
             {
@@ -34,13 +35,13 @@ namespace RECV_Editor.File_Formats
 
             using (MemoryStream ms = new MemoryStream(rdxData))
             {
-                return Extract(ms, outputFolder, language, table);
+                return Extract(ms, rdxFileName, outputFolder, language, table);
             }
         }
 
-        public abstract Results Extract(Stream rdxStream, string outputFolder, int language, Table table);
+        public abstract Results Extract(Stream rdxStream, string rdxFileName, string outputFolder, int language, Table table);
 
-        public void Insert(string inputFolder, string outputFile, Table table)
+        public void Insert(string inputFolder, string outputFile, int language, Table table)
         {
             if (string.IsNullOrEmpty(outputFile))
             {
@@ -54,11 +55,11 @@ namespace RECV_Editor.File_Formats
 
             using (FileStream outputStream = new FileStream(outputFile, FileMode.Open, FileAccess.ReadWrite))
             {
-                Insert(inputFolder, outputStream, table);
+                Insert(inputFolder, outputStream, Path.GetFileName(outputFile), language, table);
             }
         }
 
-        public abstract void Insert(string inputFolder, Stream rdxStream, Table table);
+        public abstract void Insert(string inputFolder, Stream rdxStream, string rdxFileName, int language, Table table);
 
         public static RDX GetRDX(RECV.Platforms platform)
         {

@@ -10,10 +10,10 @@ namespace RECV_Editor
 {
     class RECV_GameCube : RECV
     {
-        readonly static string[] languageNames = new string[] { "Japanese", "English (USA)", "English", "German", "French", "Spanish", "Italian" };
+        readonly static string[] languageNames = new string[] { JPN_LANGUAGE_NAME, USA_LANGUAGE_NAME, ENG_LANGUAGE_NAME, GER_LANGUAGE_NAME, FRA_LANGUAGE_NAME, SPA_LANGUAGE_NAME, ITA_LANGUAGE_NAME };
         public override string[] LanguageNames => languageNames;
 
-        readonly static string[] languageCodes = new string[] { "JPN", "USA", "ENG", "GER", "FRA", "SPA", "ITA" };
+        readonly static string[] languageCodes = new string[] { JPN_LANGUAGE_CODE, USA_LANGUAGE_CODE, ENG_LANGUAGE_CODE, GER_LANGUAGE_CODE, FRA_LANGUAGE_CODE, SPA_LANGUAGE_CODE, ITA_LANGUAGE_CODE };
         protected override string[] LanguageCodes => languageCodes;
 
         readonly static int[] languageIndices = new int[] { 0, 1, 2, 3, 4, 5, 6 };
@@ -125,7 +125,7 @@ namespace RECV_Editor
 
                     File.Delete(rdxFiles[f]);
 
-                    RDX.Results result = rdx.Extract(rdxUncompressedData, rdxFiles[f] + RDX_EXTRACTED_FOLDER_SUFFIX, language, table);
+                    RDX.Results result = rdx.Extract(rdxUncompressedData, Path.GetFileName(rdxFiles[f]), rdxFiles[f] + RDX_EXTRACTED_FOLDER_SUFFIX, language, table);
                     if (result == RDX.Results.NotValidRdxFile) Logger.Append($"\"{rdxFiles[f]}\" is not a valid RDX file. Ignoring.", Logger.LogTypes.Warning);
 #if MULTITHREADING
                 });
@@ -148,6 +148,11 @@ namespace RECV_Editor
         public override void InsertAll(string inputFolder, string outputFolder, string originalDataFolder, string tablesFolder, int languageIndex, IProgress<ProgressInfo> progress)
         {
             throw new NotImplementedException("GameCube data insertion not implemented.");
+        }
+
+        public static string GetLanguageCode(int language)
+        {
+            return languageCodes[language];
         }
     }
 }

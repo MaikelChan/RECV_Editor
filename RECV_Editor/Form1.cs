@@ -147,7 +147,7 @@ namespace RECV_Editor
             Table table = recv.GetTableFromLanguage(settings.Data.TablesFolder, 0);
 
             RDX rdx = RDX.GetRDX(RECV.Platforms.PS2);
-            rdx.Extract(uncompressedPrsData, prsFile + "_output", (int)RECV.Platforms.PS2, table);
+            rdx.Extract(uncompressedPrsData, Path.GetFileName(prsFile), prsFile + "_output", (int)RECV.Platforms.PS2, table);
         }
 
         #endregion

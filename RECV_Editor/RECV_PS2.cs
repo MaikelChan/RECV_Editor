@@ -11,10 +11,10 @@ namespace RECV_Editor
 {
     class RECV_PS2 : RECV
     {
-        readonly static string[] languageNames = new string[] { "English", "French", "German", "Spanish" };
+        readonly static string[] languageNames = new string[] { ENG_LANGUAGE_NAME, FRA_LANGUAGE_NAME, GER_LANGUAGE_NAME, SPA_LANGUAGE_NAME };
         public override string[] LanguageNames => languageNames;
 
-        readonly static string[] languageCodes = new string[] { "ENG", "FRA", "GER", "SPA" };
+        readonly static string[] languageCodes = new string[] { ENG_LANGUAGE_CODE, FRA_LANGUAGE_CODE, GER_LANGUAGE_CODE, SPA_LANGUAGE_CODE };
         protected override string[] LanguageCodes => languageCodes;
 
         readonly static int[] languageIndices = new int[] { 1, 2, 5, 4 };
@@ -124,7 +124,7 @@ namespace RECV_Editor
 
                 File.Delete(rdxFiles[f]);
 
-                RDX.Results result = rdx.Extract(rdxUncompressedData, rdxFiles[f] + RDX_EXTRACTED_FOLDER_SUFFIX, language, table);
+                RDX.Results result = rdx.Extract(rdxUncompressedData, Path.GetFileName(rdxFiles[f]), rdxFiles[f] + RDX_EXTRACTED_FOLDER_SUFFIX, language, table);
                 if (result == RDX.Results.NotValidRdxFile) Logger.Append($"\"{rdxFiles[f]}\" is not a valid RDX file. Ignoring.", Logger.LogTypes.Warning);
 #if MULTITHREADING
             });
@@ -279,7 +279,7 @@ namespace RECV_Editor
                     ms.Write(rdxUncompressedData, 0, rdxUncompressedData.Length);
                     ms.Position = 0;
 
-                    rdx.Insert(inputRdxPaths[r], ms, table);
+                    rdx.Insert(inputRdxPaths[r], ms, Path.GetFileName(outputRdxFiles[r]), language, table);
 
                     rdxData = PRS.Compress(ms.ToArray());
                 }
@@ -311,6 +311,11 @@ namespace RECV_Editor
 
             sw.Stop();
             MessageBox.Show($"The process has finished successfully in {sw.Elapsed.TotalSeconds} seconds.");
+        }
+
+        public static string GetLanguageCode(int language)
+        {
+            return languageCodes[language];
         }
     }
 }

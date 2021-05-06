@@ -8,9 +8,6 @@ namespace RECV_Editor.File_Formats
     {
         protected override bool IsBigEndian => true;
 
-        readonly string[] languageCodes = new string[] { "USA", "GER", "FRA", "ITA", "SPA", "JPN" };
-        protected override string[] LanguageCodes => languageCodes;
-
         readonly uint[] languageSubBlockIndices = new uint[] { 14, 16, 17, 18, 19, 20 };
         protected override uint[] LanguageSubBlockIndices => languageSubBlockIndices;
 
@@ -18,9 +15,7 @@ namespace RECV_Editor.File_Formats
 
         const uint TEXT_DATA_BLOCK_SUBBLOCK_COUNT = 21;
 
-        const string STRINGS_FILE_NAME = "Strings_{0}.txt";
-
-        public override Results Extract(Stream rdxStream, string outputFolder, int language, Table table)
+        public override Results Extract(Stream rdxStream, string rdxFileName, string outputFolder, int language, Table table)
         {
             if (rdxStream == null)
             {
@@ -76,7 +71,7 @@ namespace RECV_Editor.File_Formats
                 int rdxLanguageIndex = GetRDXLanguageIndex(language);
                 if (rdxLanguageIndex >= 0)
                 {
-                    string textOutputFileName = Path.Combine(outputFolder, string.Format(STRINGS_FILE_NAME, LanguageCodes[rdxLanguageIndex]));
+                    string textOutputFileName = Path.Combine(outputFolder, string.Format(STRINGS_FILE_NAME, rdxFileName, RECV_GameCube.GetLanguageCode(language)));
                     uint textPosition = subBlockPositions[languageSubBlockIndices[rdxLanguageIndex]];
                     ExtractTexts(rdxStream, textOutputFileName, table, textPosition);
                 }
@@ -111,7 +106,7 @@ namespace RECV_Editor.File_Formats
             return Results.Success;
         }
 
-        public override void Insert(string inputFolder, Stream rdxStream, Table table)
+        public override void Insert(string inputFolder, Stream rdxStream, string rdxFileName, int language, Table table)
         {
             throw new NotImplementedException("GameCube RDX insertion not implemented.");
         }

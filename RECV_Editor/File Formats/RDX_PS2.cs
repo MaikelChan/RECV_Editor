@@ -8,9 +8,6 @@ namespace RECV_Editor.File_Formats
     {
         protected override bool IsBigEndian => false;
 
-        readonly string[] languageCodes = new string[] { "ENG" };
-        protected override string[] LanguageCodes => languageCodes;
-
         readonly uint[] languageSubBlockIndices = new uint[] { 14 };
         protected override uint[] LanguageSubBlockIndices => languageSubBlockIndices;
 
@@ -19,9 +16,7 @@ namespace RECV_Editor.File_Formats
 
         const uint TEXT_DATA_BLOCK_SUBBLOCK_COUNT = 16;
 
-        const string STRINGS_FILE_NAME = "Strings.txt";
-
-        public override Results Extract(Stream rdxStream, string outputFolder, int language, Table table)
+        public override Results Extract(Stream rdxStream, string rdxFileName, string outputFolder, int language, Table table)
         {
             if (rdxStream == null)
             {
@@ -79,7 +74,7 @@ namespace RECV_Editor.File_Formats
 
                 // Extract all the subBlocks that contain texts
 
-                string textOutputFileName = Path.Combine(outputFolder, STRINGS_FILE_NAME);
+                string textOutputFileName = Path.Combine(outputFolder, string.Format(STRINGS_FILE_NAME, rdxFileName, RECV_PS2.GetLanguageCode(language)));
                 uint textPosition = subBlockPositions[languageSubBlockIndices[0]];
                 ExtractTexts(rdxStream, textOutputFileName, table, textPosition);
 
@@ -113,7 +108,7 @@ namespace RECV_Editor.File_Formats
             return Results.Success;
         }
 
-        public override void Insert(string inputFolder, Stream rdxStream, Table table)
+        public override void Insert(string inputFolder, Stream rdxStream, string rdxFileName, int language, Table table)
         {
             if (string.IsNullOrEmpty(inputFolder))
             {
@@ -204,7 +199,7 @@ namespace RECV_Editor.File_Formats
                 {
                     uint subBlock14Size = (subBlockPositions[15] == 0 ? unk1DataBlockPosition : subBlockPositions[15]) - subBlockPositions[14];
 
-                    string texts = File.ReadAllText(Path.Combine(inputFolder, STRINGS_FILE_NAME));
+                    string texts = File.ReadAllText(Path.Combine(inputFolder, string.Format(STRINGS_FILE_NAME, rdxFileName, RECV_PS2.GetLanguageCode(language))));
 
                     using (MemoryStream textsStream = new MemoryStream())
                     {

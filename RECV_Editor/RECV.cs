@@ -32,6 +32,22 @@ namespace RECV_Editor
         protected abstract int DiscCount { get; }
         protected abstract bool IsBigEndian { get; }
 
+        public const string JPN_LANGUAGE_CODE = "JPN";
+        public const string USA_LANGUAGE_CODE = "USA";
+        public const string ENG_LANGUAGE_CODE = "ENG";
+        public const string GER_LANGUAGE_CODE = "GER";
+        public const string FRA_LANGUAGE_CODE = "FRA";
+        public const string SPA_LANGUAGE_CODE = "SPA";
+        public const string ITA_LANGUAGE_CODE = "ITA";
+
+        public const string JPN_LANGUAGE_NAME = "Japanese";
+        public const string USA_LANGUAGE_NAME = "English (USA)";
+        public const string ENG_LANGUAGE_NAME = "English";
+        public const string GER_LANGUAGE_NAME = "German";
+        public const string FRA_LANGUAGE_NAME = "French";
+        public const string SPA_LANGUAGE_NAME = "Spanish";
+        public const string ITA_LANGUAGE_NAME = "Italian";
+
         protected const string RDX_EXTRACTED_FOLDER_SUFFIX = "_extract";
 
         public abstract void ExtractAll(string inputFolder, string outputFolder, string tablesFolder, int language, IProgress<ProgressInfo> progress);
