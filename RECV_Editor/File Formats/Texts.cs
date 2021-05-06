@@ -147,7 +147,7 @@ namespace RECV_Editor.File_Formats
                         {
                             uint padding = Utils.Padding((uint)ms.Position, 4);
                             padding = padding - (uint)ms.Position;
-                            for (uint p = 0; p < padding; p++) bw.WriteEndian((byte)0xFF, bigEndian);
+                            for (uint p = 0; p < padding; p++) bw.Write((byte)0xFF);
                             break;
                         }
 
