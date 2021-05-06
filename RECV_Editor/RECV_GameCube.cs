@@ -1,7 +1,9 @@
-﻿using RECV_Editor.File_Formats;
+﻿using PSO.PRS;
+using RECV_Editor.File_Formats;
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace RECV_Editor
@@ -97,6 +99,39 @@ namespace RECV_Editor
                     rdxLnkOutputFolder = Path.ChangeExtension(Path.Combine(discOutputFolder, rdxLnkFileName), null);
                     ExtractRdxLnk(rdxLnkInputFolder, rdxLnkFileName, rdxLnkOutputFolder, progress, ref currentProgressValue, MAX_EXTRACTION_PROGRESS_STEPS * DiscCount);
                 }
+
+                // Decompress files in RDX_LNK1
+
+                string[] rdxFiles = Directory.GetFiles(rdxLnkOutputFolder);
+
+                RDX rdx = RDX.GetRDX(Platforms.GameCube);
+
+                currentProgressValue++;
+                int currentRdxFile = 1;
+
+#if MULTITHREADING
+                Parallel.For(0, rdxFiles.Length, (f) =>
+                {
+#else
+                for (int f = 0; f < rdxFiles.Length; f++)
+                {
+#endif
+                    Logger.Append($"Extracting RDX file \"{rdxFiles[f]}\"...");
+                    progress?.Report(new ProgressInfo($"Extracting RDX files... ({currentRdxFile++}/{rdxFiles.Length})", currentProgressValue, MAX_EXTRACTION_PROGRESS_STEPS * DiscCount));
+
+                    byte[] rdxData = File.ReadAllBytes(rdxFiles[f]);
+                    byte[] rdxUncompressedData = PRS.Decompress(rdxData);
+                    //File.WriteAllBytes(rdxFiles[f] + ".unc", rdxUncompressedData);
+
+                    File.Delete(rdxFiles[f]);
+
+                    RDX.Results result = rdx.Extract(rdxUncompressedData, rdxFiles[f] + RDX_EXTRACTED_FOLDER_SUFFIX, language, table);
+                    if (result == RDX.Results.NotValidRdxFile) Logger.Append($"\"{rdxFiles[f]}\" is not a valid RDX file. Ignoring.", Logger.LogTypes.Warning);
+#if MULTITHREADING
+                });
+#else
+                }
+#endif
             }
 
             // Finish process

@@ -145,7 +145,9 @@ namespace RECV_Editor
             File.WriteAllBytes(prsFile + ".unc", uncompressedPrsData);
 
             Table table = recv.GetTableFromLanguage(settings.Data.TablesFolder, 0);
-            RDX.Extract(uncompressedPrsData, prsFile + "_output", table, false);
+
+            RDX rdx = RDX.GetRDX(RECV.Platforms.PS2);
+            rdx.Extract(uncompressedPrsData, prsFile + "_output", (int)RECV.Platforms.PS2, table);
         }
 
         #endregion

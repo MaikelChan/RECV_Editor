@@ -32,6 +32,8 @@ namespace RECV_Editor
         protected abstract int DiscCount { get; }
         protected abstract bool IsBigEndian { get; }
 
+        protected const string RDX_EXTRACTED_FOLDER_SUFFIX = "_extract";
+
         public abstract void ExtractAll(string inputFolder, string outputFolder, string tablesFolder, int language, IProgress<ProgressInfo> progress);
         public abstract void InsertAll(string inputFolder, string outputFolder, string originalDataFolder, string tablesFolder, int language, IProgress<ProgressInfo> progress);
 
