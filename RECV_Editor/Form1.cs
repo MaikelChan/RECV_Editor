@@ -188,7 +188,7 @@ namespace RECV_Editor
             // Original Game Root Folder
 
             oDlg.IsFolderPicker = true;
-            oDlg.Title = "Select the root folder of Resident Evil Code Veronica (PAL) for PS2";
+            oDlg.Title = "Select the folder where the data extracted from the original ISOs of Resident Evil Code Veronica (PAL) is located";
             if (oDlg.ShowDialog() != CommonFileDialogResult.Ok)
             {
                 MessageBox.Show("It is necessary to initialize the settings, so the program will now close.", "Initialize settings", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);

@@ -113,7 +113,7 @@ namespace RECV_Editor.File_Formats
 
         public override void Insert(string inputFolder, Stream rdxStream, Table table)
         {
-            throw new NotImplementedException();
+            throw new NotImplementedException("GameCube RDX insertion not implemented.");
         }
 
         int GetRDXLanguageIndex(int language)

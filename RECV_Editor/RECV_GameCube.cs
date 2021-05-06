@@ -147,7 +147,7 @@ namespace RECV_Editor
 
         public override void InsertAll(string inputFolder, string outputFolder, string originalDataFolder, string tablesFolder, int languageIndex, IProgress<ProgressInfo> progress)
         {
-            throw new NotImplementedException();
+            throw new NotImplementedException("GameCube data insertion not implemented.");
         }
     }
 }
