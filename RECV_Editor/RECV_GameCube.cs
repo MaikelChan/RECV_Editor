@@ -142,7 +142,7 @@ namespace RECV_Editor
             GC.Collect();
 
             sw.Stop();
-            MessageBox.Show($"The process has finished successfully in {sw.Elapsed.TotalSeconds} seconds.");
+            MessageBox.Show($"The process has finished successfully in {sw.Elapsed.TotalSeconds} seconds.", "Success!", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
         public override void InsertAll(string inputFolder, string outputFolder, string originalDataFolder, string tablesFolder, int languageIndex, IProgress<ProgressInfo> progress)

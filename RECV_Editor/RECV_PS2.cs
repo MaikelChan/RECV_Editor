@@ -99,9 +99,19 @@ namespace RECV_Editor
                 ExtractRdxLnk(rdxLnkInputFolder, rdxLnkFileName, rdxLnkOutputFolder, progress, ref currentProgressValue, MAX_EXTRACTION_PROGRESS_STEPS * DiscCount);
             }
 
-            // Decompress files in RDX_LNK1
+            // Rename PS2 RDX files for convenience
 
             string[] rdxFiles = Directory.GetFiles(rdxLnkOutputFolder);
+            string[] rdxNames = Constants.PS2_RDXFileNames[language];
+
+            for (int r = 0; r < rdxFiles.Length; r++)
+            {
+                string newName = Path.Combine(Path.GetDirectoryName(rdxFiles[r]), rdxNames[r]);
+                File.Move(rdxFiles[r], newName);
+                rdxFiles[r] = newName;
+            }
+
+            // Decompress files in RDX_LNK1
 
             RDX rdx = RDX.GetRDX(Platforms.PS2);
 
@@ -140,7 +150,7 @@ namespace RECV_Editor
             GC.Collect();
 
             sw.Stop();
-            MessageBox.Show($"The process has finished successfully in {sw.Elapsed.TotalSeconds} seconds.");
+            MessageBox.Show($"The process has finished successfully in {sw.Elapsed.TotalSeconds} seconds.", "Success!", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
         public override void InsertAll(string inputFolder, string outputFolder, string originalDataFolder, string tablesFolder, int language, IProgress<ProgressInfo> progress)
@@ -240,6 +250,18 @@ namespace RECV_Editor
             AFS.ExtractAFS(original_RDX_LNK, output_RDX_LNK_folder);
             AFS.NotifyProgress -= AFS_NotifyProgress;
 
+            // Rename PS2 RDX files for convenience
+
+            string[] outputRdxFiles = Directory.GetFiles(output_RDX_LNK_folder);
+            string[] rdxNames = Constants.PS2_RDXFileNames[language];
+
+            for (int r = 0; r < outputRdxFiles.Length; r++)
+            {
+                string newName = Path.Combine(Path.GetDirectoryName(outputRdxFiles[r]), rdxNames[r]);
+                File.Move(outputRdxFiles[r], newName);
+                outputRdxFiles[r] = newName;
+            }
+
             // Generate RDX files
 
             if (!Directory.Exists(input_RDX_LNK_folder))
@@ -248,7 +270,6 @@ namespace RECV_Editor
             }
 
             string[] inputRdxPaths = Directory.GetDirectories(input_RDX_LNK_folder);
-            string[] outputRdxFiles = Directory.GetFiles(output_RDX_LNK_folder);
 
             if (inputRdxPaths.Length != outputRdxFiles.Length)
             {
@@ -310,7 +331,7 @@ namespace RECV_Editor
             GC.Collect();
 
             sw.Stop();
-            MessageBox.Show($"The process has finished successfully in {sw.Elapsed.TotalSeconds} seconds.");
+            MessageBox.Show($"The process has finished successfully in {sw.Elapsed.TotalSeconds} seconds.", "Success!", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
         public static string GetLanguageCode(int language)

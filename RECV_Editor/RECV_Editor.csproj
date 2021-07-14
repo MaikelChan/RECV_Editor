@@ -54,6 +54,7 @@
     <Reference Include="System.Windows.Forms" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Constants.cs" />
     <Compile Include="File Formats\AFS.cs" />
     <Compile Include="File Formats\ALD.cs" />
     <Compile Include="File Formats\RDX_GameCube.cs" />
