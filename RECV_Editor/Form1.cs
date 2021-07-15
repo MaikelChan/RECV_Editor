@@ -22,8 +22,10 @@ namespace RECV_Editor
         {
             InitializeComponent();
 
+#if MULTITHREADING
             Process currentProcess = Process.GetCurrentProcess();
             currentProcess.PriorityClass = ProcessPriorityClass.BelowNormal;
+#endif
         }
 
         #region Controls events

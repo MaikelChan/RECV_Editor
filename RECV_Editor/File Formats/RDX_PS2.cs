@@ -251,9 +251,9 @@ namespace RECV_Editor.File_Formats
                 {
                     rdxStream.Position = texturePositions[tp];
 
-                    uint textureSize;
-                    if (tp < numberOfTextures - 1) textureSize = texturePositions[tp + 1] - texturePositions[tp];
-                    else textureSize = (uint)rdxStream.Length - texturePositions[tp];
+                    //uint textureSize;
+                    //if (tp < numberOfTextures - 1) textureSize = texturePositions[tp + 1] - texturePositions[tp];
+                    //else textureSize = (uint)rdxStream.Length - texturePositions[tp];
 
                     TM2.Insert(Path.Combine(inputFolder, $"TIM2-{tp:0000}"), rdxStream);
                 }

@@ -1,4 +1,6 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Text;
 
@@ -13,9 +15,30 @@ namespace RECV_Editor.File_Formats
 
         const uint PLI_HEADER_SIZE = 32;
 
+        const string METADATA_FILENAME = "metadata.json";
+
+        class TM2_Metadata
+        {
+            public List<TM2_MetadataEntry> Entries { get; set; } = new List<TM2_MetadataEntry>();
+        }
+
+        class TM2_MetadataEntry
+        {
+            public uint EntrySize { get; set; } = 0;
+
+            public bool HasPLIData { get; set; } = false;
+            public string PLIData { get; set; } = string.Empty;
+
+            public bool HasTM2Data { get; set; } = false;
+            public uint TM2Size { get; set; } = 0;
+            public byte TM2Format { get; set; } = 0;
+        }
+
         public static void Extract(Stream tm2Stream, string outputFolder)
         {
             if (!Directory.Exists(outputFolder)) Directory.CreateDirectory(outputFolder);
+
+            TM2_Metadata metadata = new TM2_Metadata();
 
             using (BinaryReader br = new BinaryReader(tm2Stream, Encoding.UTF8, true))
             {
@@ -25,18 +48,23 @@ namespace RECV_Editor.File_Formats
                 {
                     string outputFileName = Path.Combine(outputFolder, $"{currentTextureIndex:0000}");
 
+                    long entryStartPosition = tm2Stream.Position;
+
                     uint magic = br.ReadUInt32();
+
+                    TM2_MetadataEntry entry = new TM2_MetadataEntry();
 
                     // Check if there's a PLI section before the TM2 data
                     if (magic == PLI_MAGIC)
                     {
                         uint pliSize = br.ReadUInt32();
-                        tm2Stream.Position -= 8;
+                        tm2Stream.Position += 0x18;
 
-                        using (FileStream fs = File.OpenWrite(outputFileName + ".PLI"))
-                        {
-                            tm2Stream.CopySliceTo(fs, (int)(PLI_HEADER_SIZE + pliSize));
-                        }
+                        byte[] pliData = new byte[pliSize];
+                        tm2Stream.Read(pliData, 0, pliData.Length);
+
+                        entry.HasPLIData = true;
+                        entry.PLIData = Convert.ToBase64String(pliData);
 
                         magic = br.ReadUInt32();
                     }
@@ -44,14 +72,14 @@ namespace RECV_Editor.File_Formats
                     // There is one case with a null texture, located in RDX #87
                     if (magic == 0xFFFFFFFF)
                     {
-                        tm2Stream.Position -= 4;
-
-                        using (FileStream fs = File.OpenWrite(outputFileName + ".TM2"))
-                        {
-                            tm2Stream.CopySliceTo(fs, 0x20); // TODO: Is it always 0x20?
-                        }
+                        tm2Stream.Position += 0x1C;
 
                         currentTextureIndex++;
+
+                        // Add metadata entry
+
+                        entry.EntrySize = (uint)(tm2Stream.Position - entryStartPosition);
+                        metadata.Entries.Add(entry);
 
                         continue;
                     }
@@ -63,12 +91,29 @@ namespace RECV_Editor.File_Formats
                     }
 
                     uint size = br.ReadUInt32();
-                    tm2Stream.Position += 24;
+                    entry.HasTM2Data = true;
+                    entry.TM2Size = size;
 
-                    using (FileStream fs = File.OpenWrite(outputFileName + ".TM2"))
+                    tm2Stream.Position += 0x18;
+
+                    using (FileStream fs = new FileStream(outputFileName + ".TM2", FileMode.Create, FileAccess.ReadWrite))
                     {
                         tm2Stream.CopySliceTo(fs, (int)size);
+
+                        // Store the format value located at 0x90 in the metadata and set it to 0.
+                        // This makes the TIM2 work in OptPix.
+
+                        fs.Position = 0x90;
+                        entry.TM2Format = (byte)fs.ReadByte();
+
+                        fs.Position = 0x90;
+                        fs.WriteByte(0);
                     }
+
+                    // Add metadata entry
+
+                    entry.EntrySize = (uint)(tm2Stream.Position - entryStartPosition);
+                    metadata.Entries.Add(entry);
 
                     // Check if there are more TIM2 files
                     if (tm2Stream.Position >= tm2Stream.Length) break;
@@ -79,6 +124,10 @@ namespace RECV_Editor.File_Formats
                     currentTextureIndex++;
                 }
             }
+
+            // Save metadata
+
+            File.WriteAllText(Path.Combine(outputFolder, METADATA_FILENAME), JsonConvert.SerializeObject(metadata, Formatting.Indented));
         }
 
         public static void Insert(string inputFolder, Stream rdxStream)
@@ -98,91 +147,48 @@ namespace RECV_Editor.File_Formats
                 throw new ArgumentNullException(nameof(rdxStream));
             }
 
+            TM2_Metadata metadata = JsonConvert.DeserializeObject<TM2_Metadata>(File.ReadAllText(Path.Combine(inputFolder, METADATA_FILENAME)));
+
             using (BinaryReader br = new BinaryReader(rdxStream, Encoding.UTF8, true))
+            using (BinaryWriter bw = new BinaryWriter(rdxStream, Encoding.UTF8, true))
             {
-                uint currentTextureIndex = 0;
-
-                for (; ; )
+                for (int e = 0; e < metadata.Entries.Count; e++)
                 {
-                    string inputFileName = Path.Combine(inputFolder, $"{currentTextureIndex:0000}");
+                    TM2_MetadataEntry entry = metadata.Entries[e];
 
-                    uint magic = br.ReadUInt32();
+                    string inputFileName = Path.Combine(inputFolder, $"{e:0000}.TM2");
 
-                    // Check if there's a PLI section before the TM2 data
-                    if (magic == PLI_MAGIC)
+                    if (!File.Exists(inputFileName) || !entry.HasTM2Data)
                     {
-                        uint pliSize = br.ReadUInt32() + PLI_HEADER_SIZE;
-                        rdxStream.Position -= 8;
-
-                        if (!File.Exists(inputFileName + ".PLI"))
-                        {
-                            throw new FileNotFoundException($"Required file \"{inputFileName + ".PLI"}\" not found.");
-                        }
-
-                        using (FileStream fs = File.OpenRead(inputFileName + ".PLI"))
-                        {
-                            if (pliSize != fs.Length)
-                            {
-                                throw new InvalidDataException($"File \"{inputFileName + ".PLI"}\" is {fs.Length} bytes but is expected to be {pliSize} bytes.");
-                            }
-
-                            fs.CopyTo(rdxStream);
-                        }
-
-                        magic = br.ReadUInt32();
-                    }
-
-                    // There is one case with a null texture, located in RDX #87
-                    if (magic == 0xFFFFFFFF)
-                    {
-                        rdxStream.Position -= 4;
-
-                        if (!File.Exists(inputFileName + ".TM2"))
-                        {
-                            throw new FileNotFoundException($"Required file \"{inputFileName + ".TM2"}\" not found.");
-                        }
-
-                        using (FileStream fs = File.OpenRead(inputFileName + ".TM2"))
-                        {
-                            fs.CopyTo(rdxStream);
-                        }
-
-                        currentTextureIndex++;
-
+                        rdxStream.Position += entry.EntrySize;
                         continue;
                     }
 
-                    // Here should be TM2 data, check if that's the case
-                    if (magic != TIM2_MAGIC)
+                    if (entry.HasPLIData)
                     {
-                        throw new InvalidDataException($"Invalid TIM2 data found in \"{inputFileName}\".");
+                        byte[] pliData = Convert.FromBase64String(entry.PLIData);
+
+                        bw.Write(PLI_MAGIC);
+                        bw.Write(pliData.Length);
+                        for (int i = 0; i < 0x18 >> 1; i++) bw.Write((ushort)0x4443);
+                        rdxStream.Write(pliData, 0, pliData.Length);
                     }
 
+                    byte[] tm2Data = File.ReadAllBytes(inputFileName);
+
+                    rdxStream.Position += 0x4;
                     uint size = br.ReadUInt32();
-                    rdxStream.Position += 24;
 
-                    if (!File.Exists(inputFileName + ".TM2"))
+                    if (size != tm2Data.Length)
                     {
-                        throw new FileNotFoundException($"Required file \"{inputFileName + ".TM2"}\" not found.");
+                        throw new InvalidDataException($"Invalid TIM2 data found in \"{inputFileName}\". The size of the file is {tm2Data.Length} bytes, but {size} bytes are expected");
                     }
 
-                    using (FileStream fs = File.OpenRead(inputFileName + ".TM2"))
-                    {
-                        if (size != fs.Length)
-                        {
-                            throw new InvalidDataException($"File \"{inputFileName + ".TM2"}\" is {fs.Length} bytes but is expected to be {size} bytes.");
-                        }
+                    // Revert the format value that was set to 0 for compatibility reasons
+                    tm2Data[0x90] = entry.TM2Format;
 
-                        fs.CopyTo(rdxStream);
-                    }
-
-                    // Check if there are more TIM2 files
-                    if (rdxStream.Position >= rdxStream.Length) break;
-                    uint hex = br.ReadUInt32();
-                    if (hex == 0xFFFFFFFF) break;
-
-                    rdxStream.Position -= 4;
-                    currentTextureIndex++;
+                    rdxStream.Position += 0x18;
+                    rdxStream.Write(tm2Data, 0, tm2Data.Length);
                 }
             }
         }
