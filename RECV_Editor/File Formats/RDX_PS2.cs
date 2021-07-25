@@ -249,13 +249,16 @@ namespace RECV_Editor.File_Formats
 
                 for (int tp = 0; tp < numberOfTextures; tp++)
                 {
+                    string TIM2Folder = Path.Combine(inputFolder, $"TIM2-{tp:0000}");
+                    if (!Directory.Exists(TIM2Folder)) continue;
+
                     rdxStream.Position = texturePositions[tp];
 
                     //uint textureSize;
                     //if (tp < numberOfTextures - 1) textureSize = texturePositions[tp + 1] - texturePositions[tp];
                     //else textureSize = (uint)rdxStream.Length - texturePositions[tp];
 
-                    TM2.Insert(Path.Combine(inputFolder, $"TIM2-{tp:0000}"), rdxStream);
+                    TM2.Insert(TIM2Folder, rdxStream);
                 }
             }
         }
