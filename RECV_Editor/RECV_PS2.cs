@@ -277,12 +277,11 @@ namespace RECV_Editor
             currentProgressValue++;
 
 #if MULTITHREADING
-            Parallel.For(0, inputRdxPaths.Length, (r) =>
-            {
+            Parallel.For(0, outputRdxFiles.Length, (r) =>
 #else
             for (int r = 0; r < outputRdxFiles.Length; r++)
-            {
 #endif
+            {
                 string inputRdxPath = Path.Combine(input_RDX_LNK_folder, Path.GetFileName(outputRdxFiles[r]) + RDX_EXTRACTED_FOLDER_SUFFIX);
 
                 progress?.Report(new ProgressInfo($"Inserting RDX files... ({currentRdxFile++}/{outputRdxFiles.Length})", currentProgressValue, MAX_INSERTION_PROGRESS_STEPS));
@@ -290,7 +289,11 @@ namespace RECV_Editor
                 if (!Directory.Exists(inputRdxPath))
                 {
                     Logger.Append($"Exctracted RDX \"{inputRdxPath}\" not found. Skipping...");
+#if MULTITHREADING
+                    return;
+#else
                     continue;
+#endif
                 }
 
                 Logger.Append($"Inserting RDX file \"{inputRdxPath}\"...");
