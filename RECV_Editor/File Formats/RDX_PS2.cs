@@ -195,9 +195,11 @@ namespace RECV_Editor.File_Formats
 
                 // We are only interested in subBlock 14, which contains texts
 
+                // Move block 15 and 14 if necessary (breaks when moving 14)
                 if (subBlockPositions[14] != 0)
                 {
                     uint subBlock14Size = (subBlockPositions[15] == 0 ? unk1DataBlockPosition : subBlockPositions[15]) - subBlockPositions[14];
+                    uint subBlock15Size = subBlockPositions[15] == 0 ? 0 : unk1DataBlockPosition - subBlockPositions[15];
 
                     string texts = File.ReadAllText(Path.Combine(inputFolder, string.Format(STRINGS_FILE_NAME, rdxFileName, RECV_PS2.GetLanguageCode(language))));
 
@@ -205,35 +207,183 @@ namespace RECV_Editor.File_Formats
                     {
                         Texts.Insert(texts, textsStream, table, IsBigEndian);
 
-                        if (textsStream.Length > subBlock14Size)
-                        {
-                            // Delete previous sub block 14 data
-                            rdxStream.Position = subBlockPositions[14];
-                            for (int b = 0; b < subBlock14Size; b++) rdxStream.WriteByte(0);
+                        // SubBlock 15 (if it exists) must always be after subBlock 14,
+                        // or else the game crashes.
 
-                            // Set new sub block 14 position
+                        if (textsStream.Length > subBlock14Size + subBlock15Size)
+                        {
+                            // If the new textsBlock is bigger than both subBlocks 14 and 15,
+                            // move both of them to the end of the file.
+
+                            uint oldSubBlock14Position = subBlockPositions[14];
+
+                            // Set new subBlock 14 position
+
                             subBlockPositions[14] = Utils.Padding((uint)rdxStream.Length, 16);
                             rdxStream.Position = textDataBlockPosition + (4 * 14);
                             bw.WriteEndian(subBlockPositions[14], IsBigEndian);
 
                             // Copy texts data
+
                             rdxStream.Position = subBlockPositions[14];
                             textsStream.Position = 0;
                             textsStream.CopyTo(rdxStream);
+
+                            if (subBlockPositions[15] != 0)
+                            {
+                                // If it exists, read subBlock 15
+
+                                byte[] subBlock15Data = new byte[subBlock15Size];
+                                rdxStream.Position = subBlockPositions[15];
+                                rdxStream.Read(subBlock15Data, 0, subBlock15Data.Length);
+
+                                // Write subBlock 15 after 14
+
+                                subBlockPositions[15] = Utils.Padding((uint)rdxStream.Length, 16);
+                                rdxStream.Position = textDataBlockPosition + (4 * 15);
+                                bw.WriteEndian(subBlockPositions[15], IsBigEndian);
+
+                                rdxStream.Position = subBlockPositions[15];
+                                rdxStream.Write(subBlock15Data, 0, subBlock15Data.Length);
+                            }
+
+                            // Delete previous sub subBlock 14 and 15 data
+
+                            rdxStream.Position = oldSubBlock14Position;
+                            for (int b = 0; b < subBlock14Size + subBlock15Size; b++) rdxStream.WriteByte(0);
                         }
-                        else
+                        else if (textsStream.Length > subBlock14Size && textsStream.Length <= subBlock14Size + subBlock15Size)
                         {
+                            // If the new textsBlock is bigger than subBlock 14 but fits
+                            // if we move subBlock 15 to the end of the file... well, just move it.
+                            // This condition should not happen if subBlock 15 doesn't exist,
+                            // as its size would be 0 and the previous condition would be the one triggered.
+                            // So no need to check if subBlock 15 exists.
+
+                            // Move subBlock 15
+
+                            byte[] subBlock15Data = new byte[subBlock15Size];
+                            rdxStream.Position = subBlockPositions[15];
+                            rdxStream.Read(subBlock15Data, 0, subBlock15Data.Length);
+
+                            subBlockPositions[15] = Utils.Padding((uint)rdxStream.Length, 16);
+                            rdxStream.Position = textDataBlockPosition + (4 * 15);
+                            bw.WriteEndian(subBlockPositions[15], IsBigEndian);
+
+                            rdxStream.Position = subBlockPositions[15];
+                            rdxStream.Write(subBlock15Data, 0, subBlock15Data.Length);
+
                             // Copy texts data
+
                             rdxStream.Position = subBlockPositions[14];
                             textsStream.Position = 0;
                             textsStream.CopyTo(rdxStream);
 
                             // Fill remaining bytes with zeroes
+
+                            int remainingBytes = (int)(unk1DataBlockPosition - rdxStream.Position);
+                            for (int b = 0; b < remainingBytes; b++) rdxStream.WriteByte(0);
+                        }
+                        else
+                        {
+                            // If the new textsBlock fits inside subBlock 14, just overwrite.
+
+                            // Copy texts data
+
+                            rdxStream.Position = subBlockPositions[14];
+                            textsStream.Position = 0;
+                            textsStream.CopyTo(rdxStream);
+
+                            // Fill remaining bytes with zeroes
+
                             int remainingBytes = (int)(subBlockPositions[15] - rdxStream.Position);
                             for (int b = 0; b < remainingBytes; b++) rdxStream.WriteByte(0);
                         }
                     }
                 }
+
+                // Move only block 15 (Works, but not much space available for expanding texts)
+                //if (subBlockPositions[14] != 0)
+                //{
+                //    uint subBlock14Size = (subBlockPositions[15] == 0 ? unk1DataBlockPosition : subBlockPositions[15]) - subBlockPositions[14];
+
+                //    string texts = File.ReadAllText(Path.Combine(inputFolder, string.Format(STRINGS_FILE_NAME, rdxFileName, RECV_PS2.GetLanguageCode(language))));
+
+                //    using (MemoryStream textsStream = new MemoryStream())
+                //    {
+                //        Texts.Insert(texts, textsStream, table, IsBigEndian);
+
+                //        if (textsStream.Length > subBlock14Size)
+                //        {
+                //            //// Delete previous sub block 14 data
+                //            //rdxStream.Position = subBlockPositions[14];
+                //            //for (int b = 0; b < subBlock14Size; b++) rdxStream.WriteByte(0);
+
+                //            //// Set new sub block 14 position
+                //            //subBlockPositions[14] = Utils.Padding((uint)rdxStream.Length, 16);
+                //            //rdxStream.Position = textDataBlockPosition + (4 * 14);
+                //            //bw.WriteEndian(subBlockPositions[14], IsBigEndian);
+
+                //            //// Copy texts data
+                //            //rdxStream.Position = subBlockPositions[14];
+                //            //textsStream.Position = 0;
+                //            //textsStream.CopyTo(rdxStream);
+
+                //            // There's no subBlock 15, so there's no way the new textBlock will fit
+
+                //            if (subBlockPositions[15] == 0)
+                //            {
+                //                throw new InvalidDataException($"Texts block size in \"{inputFolder}\" is {textsStream.Length} bytes, but can't be bigger than {subBlock14Size} bytes.");
+                //            }
+
+                //            // Check if the new textBlock would fit even if moving block 15
+
+                //            uint subBlock15Size = unk1DataBlockPosition - subBlockPositions[15];
+
+                //            if (textsStream.Length > subBlock14Size + subBlock15Size)
+                //            {
+                //                throw new InvalidDataException($"Texts block size in \"{inputFolder}\" is {textsStream.Length} bytes, but can't be bigger than {subBlock14Size + subBlock15Size} bytes.");
+                //            }
+
+                //            // Move block 15
+
+                //            byte[] subBlock15Data = new byte[subBlock15Size];
+                //            rdxStream.Position = subBlockPositions[15];
+                //            rdxStream.Read(subBlock15Data, 0, subBlock15Data.Length);
+
+                //            subBlockPositions[15] = Utils.Padding((uint)rdxStream.Length, 16);
+                //            rdxStream.Position = textDataBlockPosition + (4 * 15);
+                //            bw.WriteEndian(subBlockPositions[15], IsBigEndian);
+
+                //            rdxStream.Position = subBlockPositions[15];
+                //            rdxStream.Write(subBlock15Data, 0, subBlock15Data.Length);
+
+                //            // Copy texts data
+
+                //            rdxStream.Position = subBlockPositions[14];
+                //            textsStream.Position = 0;
+                //            textsStream.CopyTo(rdxStream);
+
+                //            // Fill remaining bytes with zeroes
+
+                //            int remainingBytes = (int)(unk1DataBlockPosition - rdxStream.Position);
+                //            for (int b = 0; b < remainingBytes; b++) rdxStream.WriteByte(0);
+                //        }
+                //        else
+                //        {
+                //            // Copy texts data
+
+                //            rdxStream.Position = subBlockPositions[14];
+                //            textsStream.Position = 0;
+                //            textsStream.CopyTo(rdxStream);
+
+                //            // Fill remaining bytes with zeroes
+
+                //            int remainingBytes = (int)(subBlockPositions[15] - rdxStream.Position);
+                //            for (int b = 0; b < remainingBytes; b++) rdxStream.WriteByte(0);
+                //        }
+                //    }
+                //}
 
                 // Read texture block data
 
