@@ -4,7 +4,9 @@ using RECV_Editor.File_Formats;
 using System;
 using System.Diagnostics;
 using System.IO;
+#if MULTITHREADING
 using System.Threading.Tasks;
+#endif
 using System.Windows.Forms;
 
 namespace RECV_Editor
@@ -269,13 +271,6 @@ namespace RECV_Editor
                 throw new DirectoryNotFoundException($"Directory \"{input_RDX_LNK_folder}\" does not exist!");
             }
 
-            string[] inputRdxPaths = Directory.GetDirectories(input_RDX_LNK_folder);
-
-            if (inputRdxPaths.Length != outputRdxFiles.Length)
-            {
-                throw new InvalidDataException($"There should be {outputRdxFiles.Length} RDX folder, but found {inputRdxPaths.Length} instead in \"{input_RDX_LNK_folder}\"");
-            }
-
             RDX rdx = RDX.GetRDX(Platforms.PS2);
 
             int currentRdxFile = 1;
@@ -285,11 +280,20 @@ namespace RECV_Editor
             Parallel.For(0, inputRdxPaths.Length, (r) =>
             {
 #else
-            for (int r = 0; r < inputRdxPaths.Length; r++)
+            for (int r = 0; r < outputRdxFiles.Length; r++)
             {
 #endif
-                Logger.Append($"Inserting RDX file \"{inputRdxPaths[r]}\"...");
-                progress?.Report(new ProgressInfo($"Inserting RDX files... ({currentRdxFile++}/{inputRdxPaths.Length})", currentProgressValue, MAX_INSERTION_PROGRESS_STEPS));
+                string inputRdxPath = Path.Combine(input_RDX_LNK_folder, Path.GetFileName(outputRdxFiles[r]) + RDX_EXTRACTED_FOLDER_SUFFIX);
+
+                progress?.Report(new ProgressInfo($"Inserting RDX files... ({currentRdxFile++}/{outputRdxFiles.Length})", currentProgressValue, MAX_INSERTION_PROGRESS_STEPS));
+
+                if (!Directory.Exists(inputRdxPath))
+                {
+                    Logger.Append($"Exctracted RDX \"{inputRdxPath}\" not found. Skipping...");
+                    continue;
+                }
+
+                Logger.Append($"Inserting RDX file \"{inputRdxPath}\"...");
 
                 byte[] rdxData = File.ReadAllBytes(outputRdxFiles[r]);
                 byte[] rdxUncompressedData = PRS.Decompress(rdxData);
@@ -300,7 +304,7 @@ namespace RECV_Editor
                     ms.Write(rdxUncompressedData, 0, rdxUncompressedData.Length);
                     ms.Position = 0;
 
-                    rdx.Insert(inputRdxPaths[r], ms, Path.GetFileName(outputRdxFiles[r]), language, table);
+                    rdx.Insert(inputRdxPath, ms, Path.GetFileName(outputRdxFiles[r]), language, table);
 
                     rdxData = PRS.Compress(ms.ToArray());
                 }
