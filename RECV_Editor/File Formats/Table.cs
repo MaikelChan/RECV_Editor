@@ -85,7 +85,7 @@ namespace RECV_Editor.File_Formats
                     return ushort.Parse(code, System.Globalization.NumberStyles.HexNumber);
                 }
 
-                throw new Exception($"Code {str} has not found in table.");
+                throw new Exception($"Code {str} not found in table.");
             }
 
             return hex;
