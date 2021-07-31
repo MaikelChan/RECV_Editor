@@ -67,11 +67,11 @@
       <DependentUpon>Form1.cs</DependentUpon>
     </Compile>
     <Compile Include="Logger.cs" />
-    <Compile Include="PathSettings.cs">
+    <Compile Include="PathSettingsForm.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="PathSettings.Designer.cs">
-      <DependentUpon>PathSettings.cs</DependentUpon>
+    <Compile Include="PathSettingsForm.Designer.cs">
+      <DependentUpon>PathSettingsForm.cs</DependentUpon>
     </Compile>
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -86,8 +86,8 @@
     <EmbeddedResource Include="Form1.resx">
       <DependentUpon>Form1.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="PathSettings.resx">
-      <DependentUpon>PathSettings.cs</DependentUpon>
+    <EmbeddedResource Include="PathSettingsForm.resx">
+      <DependentUpon>PathSettingsForm.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>

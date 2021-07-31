@@ -1,7 +1,7 @@
 ﻿
 namespace RECV_Editor
 {
-    partial class PathSettings
+    partial class PathSettingsForm
     {
         /// <summary>
         /// Required designer variable.
@@ -138,7 +138,7 @@ namespace RECV_Editor
             this.CancelButton.Location = new System.Drawing.Point(217, 201);
             this.CancelButton.Name = "CancelButton";
             this.CancelButton.Size = new System.Drawing.Size(110, 32);
-            this.CancelButton.TabIndex = 9;
+            this.CancelButton.TabIndex = 12;
             this.CancelButton.Text = "Cancel";
             this.CancelButton.UseVisualStyleBackColor = true;
             this.CancelButton.Click += new System.EventHandler(this.CancelButton_Click);
@@ -149,7 +149,7 @@ namespace RECV_Editor
             this.OkButton.Location = new System.Drawing.Point(333, 201);
             this.OkButton.Name = "OkButton";
             this.OkButton.Size = new System.Drawing.Size(110, 32);
-            this.OkButton.TabIndex = 10;
+            this.OkButton.TabIndex = 13;
             this.OkButton.Text = "Ok";
             this.OkButton.UseVisualStyleBackColor = true;
             this.OkButton.Click += new System.EventHandler(this.OkButton_Click);
@@ -160,7 +160,7 @@ namespace RECV_Editor
             this.TablesPathBrowseButton.Location = new System.Drawing.Point(368, 152);
             this.TablesPathBrowseButton.Name = "TablesPathBrowseButton";
             this.TablesPathBrowseButton.Size = new System.Drawing.Size(75, 23);
-            this.TablesPathBrowseButton.TabIndex = 13;
+            this.TablesPathBrowseButton.TabIndex = 11;
             this.TablesPathBrowseButton.Text = "Browse...";
             this.TablesPathBrowseButton.UseVisualStyleBackColor = true;
             this.TablesPathBrowseButton.Click += new System.EventHandler(this.TablesPathBrowseButton_Click);
@@ -172,7 +172,7 @@ namespace RECV_Editor
             this.TablesPathTextBox.Location = new System.Drawing.Point(12, 152);
             this.TablesPathTextBox.Name = "TablesPathTextBox";
             this.TablesPathTextBox.Size = new System.Drawing.Size(350, 22);
-            this.TablesPathTextBox.TabIndex = 12;
+            this.TablesPathTextBox.TabIndex = 10;
             // 
             // TablesPathLabel
             // 
@@ -180,7 +180,7 @@ namespace RECV_Editor
             this.TablesPathLabel.Location = new System.Drawing.Point(9, 136);
             this.TablesPathLabel.Name = "TablesPathLabel";
             this.TablesPathLabel.Size = new System.Drawing.Size(68, 13);
-            this.TablesPathLabel.TabIndex = 11;
+            this.TablesPathLabel.TabIndex = 9;
             this.TablesPathLabel.Text = "Tables Path:";
             // 
             // PathSettings

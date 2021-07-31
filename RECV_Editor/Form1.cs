@@ -157,7 +157,7 @@ namespace RECV_Editor
 
         private void ChangePathsMenuItem_Click(object sender, EventArgs e)
         {
-            PathSettings pathSettings = new PathSettings(settings);
+            PathSettingsForm pathSettings = new PathSettingsForm(settings);
             pathSettings.ShowDialog();
         }
 
@@ -204,7 +204,7 @@ namespace RECV_Editor
                 // Original Game Root Folder
 
                 oDlg.IsFolderPicker = true;
-                oDlg.Title = PathSettings.ORIGINAL_GAME_PATH_TITLE;
+                oDlg.Title = PathSettingsForm.ORIGINAL_GAME_PATH_TITLE;
                 if (oDlg.ShowDialog() != CommonFileDialogResult.Ok)
                 {
                     MessageBox.Show(NECESSARY_INITIALIZATION_MESSAGE, NECESSARY_INITIALIZATION_TITLE, MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
@@ -216,7 +216,7 @@ namespace RECV_Editor
 
                 // Generated Game Root Folder
 
-                oDlg.Title = PathSettings.GENERATED_GAME_PATH_TITLE;
+                oDlg.Title = PathSettingsForm.GENERATED_GAME_PATH_TITLE;
                 if (oDlg.ShowDialog() != CommonFileDialogResult.Ok)
                 {
                     MessageBox.Show(NECESSARY_INITIALIZATION_MESSAGE, NECESSARY_INITIALIZATION_TITLE, MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
@@ -228,7 +228,7 @@ namespace RECV_Editor
 
                 // Extraction folder
 
-                oDlg.Title = PathSettings.PROJECT_PATH_TITLE;
+                oDlg.Title = PathSettingsForm.PROJECT_PATH_TITLE;
                 if (oDlg.ShowDialog() != CommonFileDialogResult.Ok)
                 {
                     MessageBox.Show(NECESSARY_INITIALIZATION_MESSAGE, NECESSARY_INITIALIZATION_TITLE, MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
@@ -240,7 +240,7 @@ namespace RECV_Editor
 
                 // Tables folder
 
-                oDlg.Title = PathSettings.TABLES_PATH_TITLE;
+                oDlg.Title = PathSettingsForm.TABLES_PATH_TITLE;
                 if (oDlg.ShowDialog() != CommonFileDialogResult.Ok)
                 {
                     MessageBox.Show(NECESSARY_INITIALIZATION_MESSAGE, NECESSARY_INITIALIZATION_TITLE, MessageBoxButtons.OK, MessageBoxIcon.Exclamation);

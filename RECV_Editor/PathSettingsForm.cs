@@ -5,7 +5,7 @@ using System.Windows.Forms;
 
 namespace RECV_Editor
 {
-    public partial class PathSettings : Form
+    public partial class PathSettingsForm : Form
     {
         readonly Settings settings;
 
@@ -14,7 +14,7 @@ namespace RECV_Editor
         public const string GENERATED_GAME_PATH_TITLE = "Select the folder where the game's generated files will be saved";
         public const string TABLES_PATH_TITLE = "Select the folder where your tables are located";
 
-        public PathSettings(Settings settings)
+        public PathSettingsForm(Settings settings)
         {
             this.settings = settings;
 
