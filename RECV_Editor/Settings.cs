@@ -4,7 +4,7 @@ using System.IO;
 
 namespace RECV_Editor
 {
-    class Settings
+    public class Settings
     {
         public SettingsData Data { get; private set; }
 

@@ -155,6 +155,12 @@ namespace RECV_Editor
             rdx.Extract(uncompressedPrsData, Path.GetFileName(prsFile), prsFile + "_output", (int)RECV.Platforms.PS2, table);
         }
 
+        private void ChangePathsMenuItem_Click(object sender, EventArgs e)
+        {
+            PathSettings pathSettings = new PathSettings(settings);
+            pathSettings.ShowDialog();
+        }
+
         #endregion
 
         void SetProcessRunning(bool value)
@@ -184,58 +190,66 @@ namespace RECV_Editor
             StatusProgressBar.Maximum = progressInfo.maxProgressValue;
         }
 
+        #region Settings initialization
+
+        const string NECESSARY_INITIALIZATION_TITLE = "Initialize settings";
+        const string NECESSARY_INITIALIZATION_MESSAGE = "It is necessary to initialize the settings, so the program will now close.";
+
         bool InitializeSettings()
         {
             MessageBox.Show("This is the first time the program is run or the settings are invalid. Please configure some folder paths for the program to work properly.", "Initialize settings", MessageBoxButtons.OK, MessageBoxIcon.Information);
 
-            CommonOpenFileDialog oDlg = new CommonOpenFileDialog();
-
-            // Original Game Root Folder
-
-            oDlg.IsFolderPicker = true;
-            oDlg.Title = "Select the folder where the data extracted from the original ISOs of Resident Evil Code Veronica (PAL) is located";
-            if (oDlg.ShowDialog() != CommonFileDialogResult.Ok)
+            using (CommonOpenFileDialog oDlg = new CommonOpenFileDialog())
             {
-                MessageBox.Show("It is necessary to initialize the settings, so the program will now close.", "Initialize settings", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
-                Close();
-                return false;
+                // Original Game Root Folder
+
+                oDlg.IsFolderPicker = true;
+                oDlg.Title = PathSettings.ORIGINAL_GAME_PATH_TITLE;
+                if (oDlg.ShowDialog() != CommonFileDialogResult.Ok)
+                {
+                    MessageBox.Show(NECESSARY_INITIALIZATION_MESSAGE, NECESSARY_INITIALIZATION_TITLE, MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                    Close();
+                    return false;
+                }
+
+                settings.Data.OriginalGameRootFolder = oDlg.FileName;
+
+                // Generated Game Root Folder
+
+                oDlg.Title = PathSettings.GENERATED_GAME_PATH_TITLE;
+                if (oDlg.ShowDialog() != CommonFileDialogResult.Ok)
+                {
+                    MessageBox.Show(NECESSARY_INITIALIZATION_MESSAGE, NECESSARY_INITIALIZATION_TITLE, MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                    Close();
+                    return false;
+                }
+
+                settings.Data.GeneratedGameRootFolder = oDlg.FileName;
+
+                // Extraction folder
+
+                oDlg.Title = PathSettings.PROJECT_PATH_TITLE;
+                if (oDlg.ShowDialog() != CommonFileDialogResult.Ok)
+                {
+                    MessageBox.Show(NECESSARY_INITIALIZATION_MESSAGE, NECESSARY_INITIALIZATION_TITLE, MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                    Close();
+                    return false;
+                }
+
+                settings.Data.ProjectFolder = oDlg.FileName;
+
+                // Tables folder
+
+                oDlg.Title = PathSettings.TABLES_PATH_TITLE;
+                if (oDlg.ShowDialog() != CommonFileDialogResult.Ok)
+                {
+                    MessageBox.Show(NECESSARY_INITIALIZATION_MESSAGE, NECESSARY_INITIALIZATION_TITLE, MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                    Close();
+                    return false;
+                }
+
+                settings.Data.TablesFolder = oDlg.FileName;
             }
-
-            settings.Data.OriginalGameRootFolder = oDlg.FileName;
-
-            // Generated Game Root Folder
-
-            oDlg.Title = "Select the folder where the game's generated files will be saved";
-            if (oDlg.ShowDialog() != CommonFileDialogResult.Ok)
-            {
-                MessageBox.Show("It is necessary to initialize the settings, so the program will now close.", "Initialize settings", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
-                Close();
-                return false;
-            }
-
-            settings.Data.GeneratedGameRootFolder = oDlg.FileName;
-
-            // Extraction folder
-
-            oDlg.Title = "Select your project folder where you want to extract everything";
-            if (oDlg.ShowDialog() != CommonFileDialogResult.Ok)
-            {
-                Close();
-                return false;
-            }
-
-            settings.Data.ProjectFolder = oDlg.FileName;
-
-            // Extraction folder
-
-            oDlg.Title = "Select the folder where your tables are located";
-            if (oDlg.ShowDialog() != CommonFileDialogResult.Ok)
-            {
-                Close();
-                return false;
-            }
-
-            settings.Data.TablesFolder = oDlg.FileName;
 
             // Save
 
@@ -243,5 +257,7 @@ namespace RECV_Editor
 
             return true;
         }
+
+        #endregion
     }
 }
