@@ -120,22 +120,25 @@ namespace RECV_Editor
 
         private void DebugExtractButton_Click(object sender, EventArgs e)
         {
-            Table table = recv.GetTableFromLanguage(settings.Data.TablesFolder, 0);
+            const string rdxfile = @"C:\Users\Miguel\Desktop\RECV_Tests\r4_0010.rdx.unc";
+            const string rdxfile2 = @"C:\Users\Miguel\Desktop\RECV_Tests\r4_0010.rdx.unc2";
+            const int languageIndex = 3;
 
-            ALD.Extract(@"D:\Romhacking\Proyectos\Resident Evil Code Veronica\ENG\SYSMES1.ALD", @"D:\Romhacking\Proyectos\Resident Evil Code Veronica\Project\TEST", table, false);
-            ALD.Insert(@"D:\Romhacking\Proyectos\Resident Evil Code Veronica\Project\TEST", @"D:\Romhacking\Proyectos\Resident Evil Code Veronica\Project\TEST.ALD", table, false);
+            Table table = recv.GetTableFromLanguage(settings.Data.TablesFolder, languageIndex);
 
-            //using (FileStream fs = File.OpenRead(@"D:\Romhacking\Proyectos\Resident Evil Code Veronica\Project\00000082.text"))
-            //{
-            //    string text = Texts.Extract(fs, table);
-            //}
+            RDX rdx = RDX.GetRDX(RECV.Platforms.PS2);
 
-            //string texts = File.ReadAllText(@"D:\Romhacking\Proyectos\Resident Evil Code Veronica\Project\ENG\SYSMES1.ALD\01.txt");
+            rdx.Extract(rdxfile, Path.GetFileName(rdxfile), rdxfile + "_extract", languageIndex, table);
 
-            //using (FileStream fs = File.Create(@"D:\Romhacking\Proyectos\Resident Evil Code Veronica\Project\SYSMES1_2"))
-            //{
-            //    Texts.Insert(texts, fs, table);
-            //}
+            if (File.Exists(rdxfile2)) File.Delete(rdxfile2);
+            File.Copy(rdxfile, rdxfile2);
+
+            using (FileStream outputStream = new FileStream(rdxfile2, FileMode.Open, FileAccess.ReadWrite))
+            {
+                rdx.Insert(rdxfile + "_extract", outputStream, Path.GetFileName(rdxfile), languageIndex, table);
+            }
+
+            rdx.Extract(rdxfile2, Path.GetFileName(rdxfile2), rdxfile + "_extract2", languageIndex, table);
         }
 
         private void DebugDecompressButton_Click(object sender, EventArgs e)

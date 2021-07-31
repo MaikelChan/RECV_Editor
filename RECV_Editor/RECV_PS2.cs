@@ -310,6 +310,7 @@ namespace RECV_Editor
                     rdx.Insert(inputRdxPath, ms, Path.GetFileName(outputRdxFiles[r]), language, table);
 
                     rdxData = PRS.Compress(ms.ToArray());
+                    //File.WriteAllBytes(outputRdxFiles[r] + ".unc", ms.ToArray());
                 }
 
                 File.WriteAllBytes(outputRdxFiles[r], rdxData);
