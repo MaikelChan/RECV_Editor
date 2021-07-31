@@ -5,8 +5,8 @@ using System.Runtime.InteropServices;
 // General Information about an assembly is controlled through the following
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("RECV_Editor")]
-[assembly: AssemblyDescription("")]
+[assembly: AssemblyTitle("Resident Evil: Code Veronica - Editor")]
+[assembly: AssemblyDescription("An editor to extract and insert text and texture data from RE: Code Veronica.")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
 [assembly: AssemblyProduct("RECV_Editor")]

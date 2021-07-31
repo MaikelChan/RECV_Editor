@@ -40,12 +40,14 @@
             this.LanguageLabel = new System.Windows.Forms.Label();
             this.PlatformComboBox = new System.Windows.Forms.ComboBox();
             this.PlatformLabel = new System.Windows.Forms.Label();
-            this.MainMenuStrip = new System.Windows.Forms.MenuStrip();
+            this.MenuStrip = new System.Windows.Forms.MenuStrip();
             this.SettingsMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.ChangePathsMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.HelpMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.AboutMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.toolStripMenuItem1 = new System.Windows.Forms.ToolStripMenuItem();
             this.DebugGroup.SuspendLayout();
-            this.StatusStrip.SuspendLayout();
-            this.MainMenuStrip.SuspendLayout();
+            this.MenuStrip.SuspendLayout();
             this.SuspendLayout();
             // 
             // DebugExtractButton
@@ -74,7 +76,7 @@
             | System.Windows.Forms.AnchorStyles.Right)));
             this.DebugGroup.Controls.Add(this.DebugExtractButton);
             this.DebugGroup.Controls.Add(this.DebugDecompressButton);
-            this.DebugGroup.Location = new System.Drawing.Point(12, 123);
+            this.DebugGroup.Location = new System.Drawing.Point(12, 133);
             this.DebugGroup.Name = "DebugGroup";
             this.DebugGroup.Size = new System.Drawing.Size(356, 66);
             this.DebugGroup.TabIndex = 2;
@@ -85,7 +87,7 @@
             // 
             this.ExtractAllButton.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-            this.ExtractAllButton.Location = new System.Drawing.Point(12, 74);
+            this.ExtractAllButton.Location = new System.Drawing.Point(12, 83);
             this.ExtractAllButton.Name = "ExtractAllButton";
             this.ExtractAllButton.Size = new System.Drawing.Size(175, 41);
             this.ExtractAllButton.TabIndex = 3;
@@ -95,10 +97,7 @@
             // 
             // StatusStrip
             // 
-            this.StatusStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.StatusProgressBar,
-            this.StatusLabel});
-            this.StatusStrip.Location = new System.Drawing.Point(0, 194);
+            this.StatusStrip.Location = new System.Drawing.Point(0, 204);
             this.StatusStrip.Name = "StatusStrip";
             this.StatusStrip.Size = new System.Drawing.Size(380, 22);
             this.StatusStrip.SizingGrip = false;
@@ -121,7 +120,7 @@
             // 
             this.InsertAllButton.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-            this.InsertAllButton.Location = new System.Drawing.Point(193, 74);
+            this.InsertAllButton.Location = new System.Drawing.Point(193, 83);
             this.InsertAllButton.Name = "InsertAllButton";
             this.InsertAllButton.Size = new System.Drawing.Size(175, 41);
             this.InsertAllButton.TabIndex = 5;
@@ -135,7 +134,7 @@
             | System.Windows.Forms.AnchorStyles.Right)));
             this.LanguageComboBox.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.LanguageComboBox.FormattingEnabled = true;
-            this.LanguageComboBox.Location = new System.Drawing.Point(193, 47);
+            this.LanguageComboBox.Location = new System.Drawing.Point(193, 56);
             this.LanguageComboBox.Name = "LanguageComboBox";
             this.LanguageComboBox.Size = new System.Drawing.Size(175, 21);
             this.LanguageComboBox.TabIndex = 6;
@@ -143,7 +142,7 @@
             // LanguageLabel
             // 
             this.LanguageLabel.AutoSize = true;
-            this.LanguageLabel.Location = new System.Drawing.Point(190, 27);
+            this.LanguageLabel.Location = new System.Drawing.Point(190, 36);
             this.LanguageLabel.Name = "LanguageLabel";
             this.LanguageLabel.Size = new System.Drawing.Size(61, 13);
             this.LanguageLabel.TabIndex = 7;
@@ -153,7 +152,7 @@
             // 
             this.PlatformComboBox.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.PlatformComboBox.FormattingEnabled = true;
-            this.PlatformComboBox.Location = new System.Drawing.Point(12, 47);
+            this.PlatformComboBox.Location = new System.Drawing.Point(12, 56);
             this.PlatformComboBox.Name = "PlatformComboBox";
             this.PlatformComboBox.Size = new System.Drawing.Size(175, 21);
             this.PlatformComboBox.TabIndex = 8;
@@ -162,21 +161,22 @@
             // PlatformLabel
             // 
             this.PlatformLabel.AutoSize = true;
-            this.PlatformLabel.Location = new System.Drawing.Point(9, 27);
+            this.PlatformLabel.Location = new System.Drawing.Point(9, 36);
             this.PlatformLabel.Name = "PlatformLabel";
             this.PlatformLabel.Size = new System.Drawing.Size(53, 13);
             this.PlatformLabel.TabIndex = 9;
             this.PlatformLabel.Text = "Platform:";
             // 
-            // MainMenuStrip
+            // MenuStrip
             // 
-            this.MainMenuStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.SettingsMenuItem});
-            this.MainMenuStrip.Location = new System.Drawing.Point(0, 0);
-            this.MainMenuStrip.Name = "MainMenuStrip";
-            this.MainMenuStrip.Size = new System.Drawing.Size(380, 24);
-            this.MainMenuStrip.TabIndex = 10;
-            this.MainMenuStrip.Text = "menuStrip1";
+            this.MenuStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.SettingsMenuItem,
+            this.HelpMenuItem});
+            this.MenuStrip.Location = new System.Drawing.Point(0, 0);
+            this.MenuStrip.Name = "MenuStrip";
+            this.MenuStrip.Size = new System.Drawing.Size(380, 24);
+            this.MenuStrip.TabIndex = 10;
+            this.MenuStrip.Text = "menuStrip1";
             // 
             // SettingsMenuItem
             // 
@@ -193,23 +193,44 @@
             this.ChangePathsMenuItem.Text = "Change Project Paths...";
             this.ChangePathsMenuItem.Click += new System.EventHandler(this.ChangePathsMenuItem_Click);
             // 
+            // HelpMenuItem
+            // 
+            this.HelpMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.AboutMenuItem});
+            this.HelpMenuItem.Name = "HelpMenuItem";
+            this.HelpMenuItem.Size = new System.Drawing.Size(44, 20);
+            this.HelpMenuItem.Text = "Help";
+            // 
+            // AboutMenuItem
+            // 
+            this.AboutMenuItem.Name = "AboutMenuItem";
+            this.AboutMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.AboutMenuItem.Text = "About...";
+            this.AboutMenuItem.Click += new System.EventHandler(this.AboutMenuItem_Click);
+            // 
+            // toolStripMenuItem1
+            // 
+            this.toolStripMenuItem1.Name = "toolStripMenuItem1";
+            this.toolStripMenuItem1.Size = new System.Drawing.Size(180, 22);
+            this.toolStripMenuItem1.Text = "TU MADRE";
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(380, 216);
+            this.ClientSize = new System.Drawing.Size(380, 226);
             this.Controls.Add(this.PlatformLabel);
             this.Controls.Add(this.PlatformComboBox);
             this.Controls.Add(this.LanguageLabel);
             this.Controls.Add(this.LanguageComboBox);
             this.Controls.Add(this.InsertAllButton);
             this.Controls.Add(this.StatusStrip);
-            this.Controls.Add(this.MainMenuStrip);
+            this.Controls.Add(this.MenuStrip);
             this.Controls.Add(this.ExtractAllButton);
             this.Controls.Add(this.DebugGroup);
             this.Font = new System.Drawing.Font("Segoe UI", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
-            this.MainMenuStrip = this.MainMenuStrip;
+            this.MainMenuStrip = this.MenuStrip;
             this.MaximizeBox = false;
             this.Name = "Form1";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
@@ -217,10 +238,8 @@
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.Form1_FormClosing);
             this.Load += new System.EventHandler(this.Form1_Load);
             this.DebugGroup.ResumeLayout(false);
-            this.StatusStrip.ResumeLayout(false);
-            this.StatusStrip.PerformLayout();
-            this.MainMenuStrip.ResumeLayout(false);
-            this.MainMenuStrip.PerformLayout();
+            this.MenuStrip.ResumeLayout(false);
+            this.MenuStrip.PerformLayout();
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -240,9 +259,12 @@
         private System.Windows.Forms.Label LanguageLabel;
         private System.Windows.Forms.ComboBox PlatformComboBox;
         private System.Windows.Forms.Label PlatformLabel;
-        private System.Windows.Forms.MenuStrip MainMenuStrip;
+        private System.Windows.Forms.MenuStrip MenuStrip;
         private System.Windows.Forms.ToolStripMenuItem SettingsMenuItem;
         private System.Windows.Forms.ToolStripMenuItem ChangePathsMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem HelpMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem AboutMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem toolStripMenuItem1;
     }
 }
 

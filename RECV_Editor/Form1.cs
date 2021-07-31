@@ -1,9 +1,12 @@
 ﻿using Microsoft.WindowsAPICodePack.Dialogs;
 using PSO.PRS;
 using RECV_Editor.File_Formats;
+using RECV_Editor.Properties;
 using System;
 using System.Diagnostics;
+using System.Drawing;
 using System.IO;
+using System.Reflection;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
@@ -32,6 +35,14 @@ namespace RECV_Editor
 
         private void Form1_Load(object sender, EventArgs e)
         {
+            Assembly assembly = Assembly.GetExecutingAssembly();
+            Text = assembly.GetCustomAttribute<AssemblyTitleAttribute>().Title;
+
+            using (Icon icon = Resources.Icon)
+            {
+                Icon = icon;
+            }
+
             Logger.Initialize();
 
             settings = new Settings(SETTINGS_FILE);
@@ -159,6 +170,12 @@ namespace RECV_Editor
         {
             PathSettingsForm pathSettings = new PathSettingsForm(settings);
             pathSettings.ShowDialog();
+        }
+
+        private void AboutMenuItem_Click(object sender, EventArgs e)
+        {
+            AboutForm aboutForm = new AboutForm();
+            aboutForm.ShowDialog();
         }
 
         #endregion
