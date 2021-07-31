@@ -97,6 +97,9 @@
             // 
             // StatusStrip
             // 
+            this.StatusStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.StatusProgressBar,
+            this.StatusLabel});
             this.StatusStrip.Location = new System.Drawing.Point(0, 204);
             this.StatusStrip.Name = "StatusStrip";
             this.StatusStrip.Size = new System.Drawing.Size(380, 22);
