@@ -1,4 +1,5 @@
 ﻿using Microsoft.WindowsAPICodePack.Dialogs;
+using Microsoft.WindowsAPICodePack.Taskbar;
 using PSO.PRS;
 using RECV_Editor.File_Formats;
 using RECV_Editor.Properties;
@@ -16,6 +17,9 @@ namespace RECV_Editor
     {
         Settings settings;
         const string SETTINGS_FILE = "Settings.json";
+
+        TaskbarManager taskbarManager = TaskbarManager.Instance;
+        bool firstTaskbarProgressUpdate = true;
 
         RECV recv;
 
@@ -97,6 +101,8 @@ namespace RECV_Editor
             }
             catch (Exception ex)
             {
+                taskbarManager.SetProgressState(TaskbarProgressBarState.Error);
+
                 Logger.Append(ex.Message, Logger.LogTypes.Error);
                 MessageBox.Show($"{ex.Message}\n\n{ex}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
@@ -121,6 +127,8 @@ namespace RECV_Editor
             }
             catch (Exception ex)
             {
+                taskbarManager.SetProgressState(TaskbarProgressBarState.Error);
+
                 Logger.Append(ex.Message, Logger.LogTypes.Error);
                 MessageBox.Show($"{ex.Message}\n\n{ex}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
@@ -205,6 +213,16 @@ namespace RECV_Editor
             StatusLabel.Text = progressInfo.statusText;
             StatusProgressBar.Value = progressInfo.progressValue;
             StatusProgressBar.Maximum = progressInfo.maxProgressValue;
+
+            if (firstTaskbarProgressUpdate)
+            {
+                firstTaskbarProgressUpdate = false;
+            }
+            else
+            {
+                taskbarManager.SetProgressState(progressInfo.progressValue == 0 ? TaskbarProgressBarState.NoProgress : TaskbarProgressBarState.Normal);
+                taskbarManager.SetProgressValue(progressInfo.progressValue, progressInfo.maxProgressValue);
+            }
         }
 
         #region Settings initialization
