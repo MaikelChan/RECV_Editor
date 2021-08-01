@@ -19,6 +19,7 @@ namespace RECV_Editor.File_Formats
         const uint PPVR_MAGIC = 0x52565050;
         const uint FINAL_CHUNK_MAGIC = 0xFFFFFFFF;
 
+        const string GCIX_GVRT_NAME = "GCIX/GVRT";
         const string TPVR_NAME = "TPVR";
         const string PPVP_NAME = "PPVP";
         const string GVPL_NAME = "GVPL";
@@ -41,7 +42,6 @@ namespace RECV_Editor.File_Formats
         class GVR_Entry
         {
             public uint EntrySize { get; set; } = 0;
-            public bool HasEntryData = false;
             public List<GVR_Chunk> Chunks { get; set; } = new List<GVR_Chunk>();
         }
 
@@ -57,176 +57,174 @@ namespace RECV_Editor.File_Formats
 
             GVR_Metadata metadata = new GVR_Metadata();
 
+            // Per entry data
+
+            GVR_Entry entry = new GVR_Entry();
+            uint currentTextureIndex = 0;
+            string outputFileName = Path.Combine(outputFolder, $"{currentTextureIndex:0000}");
+            long entryStartPosition = gvrStream.Position;
+            uint paletteCount = 0;
+
+            // Per GVR block data
+
+            bool finalChunkFound = false;
+
             using (BinaryReader br = new BinaryReader(gvrStream, Encoding.UTF8, true))
             {
-                uint currentTextureIndex = 0;
-
-                for (; ; )
+                while (!finalChunkFound)
                 {
-                    string outputFileName = Path.Combine(outputFolder, $"{currentTextureIndex:0000}");
+                    uint chunkMagic = br.ReadUInt32();
+                    gvrStream.Position -= 4;
 
-                    GVR_Entry entry = new GVR_Entry();
-
-                    long entryStartPosition = gvrStream.Position;
-                    uint paletteCount = 0;
-                    bool gcixFound = false;
-                    bool finalChunkFound = false;
-
-                    while (!gcixFound && !finalChunkFound)
+                    switch (chunkMagic)
                     {
-                        uint chunkMagic = br.ReadUInt32();
-                        gvrStream.Position -= 4;
-
-                        switch (chunkMagic)
+                        case TPVR_MAGIC:
                         {
-                            case GCIX_MAGIC:
+                            byte[] chunkData = new byte[TPVR_SIZE];
+                            gvrStream.Read(chunkData, 0, chunkData.Length);
+
+                            entry.Chunks.Add(new GVR_Chunk()
                             {
-                                gcixFound = true;
-                                break;
+                                ChunkType = TPVR_NAME,
+                                ChunkData = Convert.ToBase64String(chunkData)
+                            });
+
+                            break;
+                        }
+
+                        case PPVP_MAGIC:
+                        {
+                            byte[] chunkData = new byte[PPVP_SIZE];
+                            gvrStream.Read(chunkData, 0, chunkData.Length);
+
+                            entry.Chunks.Add(new GVR_Chunk()
+                            {
+                                ChunkType = PPVP_NAME,
+                                ChunkData = Convert.ToBase64String(chunkData)
+                            });
+
+                            break;
+                        }
+
+                        case GVPL_MAGIC:
+                        {
+                            // Store external palette with the same name as the .gvr but with .gvp extension
+                            // and removing the last 16 extra bytes. That's what Puyo Tools likes.
+
+                            paletteCount++;
+                            string paletteName;
+                            if (paletteCount > 1) paletteName = paletteName = outputFileName + $"_{(paletteCount - 1):00}.gvp";
+                            else paletteName = outputFileName + ".gvp";
+
+                            gvrStream.Position += 4;
+                            uint gvplSize = br.ReadUInt32();
+                            gvrStream.Position -= 8;
+
+                            using (FileStream fs = File.OpenWrite(paletteName))
+                            {
+                                gvrStream.CopySliceTo(fs, (int)(gvplSize + 0x8));
                             }
 
-                            case TPVR_MAGIC:
+                            gvrStream.Position += 0x10; // There's always 16 extra bytes (always zeroes?)
+
+                            entry.Chunks.Add(new GVR_Chunk()
                             {
-                                byte[] chunkData = new byte[TPVR_SIZE];
-                                gvrStream.Read(chunkData, 0, chunkData.Length);
-                                entry.Chunks.Add(new GVR_Chunk()
-                                {
-                                    ChunkType = TPVR_NAME,
-                                    ChunkData = Convert.ToBase64String(chunkData)
-                                });
-                                break;
+                                ChunkType = GVPL_NAME,
+                                ChunkData = Path.GetFileName(paletteName) // Store file name, as it will be extracted to a .gvp file
+                            });
+
+                            break;
+                        }
+
+                        case PPVR_MAGIC:
+                        {
+                            byte[] chunkData = new byte[PPVR_SIZE];
+                            gvrStream.Read(chunkData, 0, chunkData.Length);
+
+                            entry.Chunks.Add(new GVR_Chunk()
+                            {
+                                ChunkType = PPVR_NAME,
+                                ChunkData = Convert.ToBase64String(chunkData)
+                            });
+
+                            break;
+                        }
+
+                        case GCIX_MAGIC:
+                        {
+                            string gcixName = outputFileName + ".gvr";
+
+                            gvrStream.Position += GCIX_SIZE;
+                            uint magic = br.ReadUInt32();
+
+                            if (magic != GVRT_MAGIC)
+                            {
+                                throw new InvalidDataException($"Invalid GVRT data found in \"{outputFileName}\" at 0x{gvrStream.Position:X8}.");
                             }
 
-                            case PPVP_MAGIC:
+                            // Size of the GVR data. Despite the GC being big endian, this data is always little endian.
+                            // So we don't use br.ReadUInt32Endian()
+
+                            uint gvrSize = br.ReadUInt32();
+
+                            // Go back to the beginning of the GCIX chunk
+
+                            gvrStream.Position -= 8 + GCIX_SIZE;
+
+                            using (FileStream fs = File.OpenWrite(gcixName))
                             {
-                                byte[] chunkData = new byte[PPVP_SIZE];
-                                gvrStream.Read(chunkData, 0, chunkData.Length);
-                                entry.Chunks.Add(new GVR_Chunk()
-                                {
-                                    ChunkType = PPVP_NAME,
-                                    ChunkData = Convert.ToBase64String(chunkData)
-                                });
-                                break;
+                                gvrStream.CopySliceTo(fs, (int)(gvrSize + 0x18));
                             }
 
-                            case GVPL_MAGIC:
+                            entry.Chunks.Add(new GVR_Chunk()
                             {
-                                paletteCount++;
-                                string paletteName = outputFileName + ".gvp";
-                                if (paletteCount > 1) paletteName += (paletteCount - 1).ToString();
+                                ChunkType = GCIX_GVRT_NAME,
+                                ChunkData = Path.GetFileName(gcixName) // Store file name, as it will be extracted to a .gvr file
+                            });
 
-                                gvrStream.Position += 4;
-                                uint gvplSize = br.ReadUInt32();
-                                gvrStream.Position -= 8;
+                            // We've found all the chunks of this entry, so store the size
 
-                                byte[] chunkData = new byte[gvplSize + 0x8];
-                                gvrStream.Read(chunkData, 0, chunkData.Length);
-                                gvrStream.Position += 0x10; // There's always 16 extra bytes (always zeroes?)
+                            entry.EntrySize = (uint)(gvrStream.Position - entryStartPosition);
+                            metadata.Entries.Add(entry);
 
-                                entry.Chunks.Add(new GVR_Chunk()
-                                {
-                                    ChunkType = GVPL_NAME,
-                                    ChunkData = Path.GetFileName(paletteName) // Store file name, as it will be extracted to a .gvp file
-                                });
+                            // Reset per entry variables for next entry
 
-                                File.WriteAllBytes(paletteName, chunkData);
+                            entry = new GVR_Entry();
+                            currentTextureIndex++;
+                            outputFileName = Path.Combine(outputFolder, $"{currentTextureIndex:0000}");
+                            entryStartPosition = gvrStream.Position;
+                            paletteCount = 0;
 
-                                break;
+                            break;
+                        }
+
+                        case FINAL_CHUNK_MAGIC:
+                        {
+                            finalChunkFound = true;
+
+                            if (entry.Chunks.Count > 0)
+                            {
+                                // If the chunks count is 0, it means that an entry with a GCIX has just been added previous to this.
+                                // But if it is bigger than 0, it means that we've reached the end of a GVR block with a current entry
+                                // that has some different chunks but no GCIX. We'll consider this as an "empty" texture.
+                                // So finish this entry by storing the size and add it to metadata.
+
+                                entry.EntrySize = (uint)(gvrStream.Position - entryStartPosition);
+                                metadata.Entries.Add(entry);
                             }
 
-                            case PPVR_MAGIC:
-                            {
-                                byte[] chunkData = new byte[PPVR_SIZE];
-                                gvrStream.Read(chunkData, 0, chunkData.Length);
-                                entry.Chunks.Add(new GVR_Chunk()
-                                {
-                                    ChunkType = PPVR_NAME,
-                                    ChunkData = Convert.ToBase64String(chunkData)
-                                });
-                                break;
-                            }
+                            byte[] finalChunkData = new byte[FINAL_CHUNK_SIZE];
+                            gvrStream.Read(finalChunkData, 0, finalChunkData.Length);
+                            metadata.FinalChunk = Convert.ToBase64String(finalChunkData);
 
-                            case FINAL_CHUNK_MAGIC:
-                            {
-                                finalChunkFound = true;
-                                break;
-                            }
+                            break;
+                        }
 
-                            default:
-                            {
-                                throw new InvalidDataException($"Invalid header data found in \"{outputFileName}\" at 0x{gvrStream.Position:X8}.");
-                            }
+                        default:
+                        {
+                            throw new InvalidDataException($"Invalid header data found in \"{outputFileName}\" at 0x{gvrStream.Position:X8}.");
                         }
                     }
-
-                    if (finalChunkFound)
-                    {
-                        // We have found a final chunk prematurely.
-                        // That means that there's no texture data.
-
-                        entry.HasEntryData = false;
-                        entry.EntrySize = (uint)(gvrStream.Position - entryStartPosition);
-                        metadata.Entries.Add(entry);
-
-                        byte[] finalChunkData = new byte[FINAL_CHUNK_SIZE];
-                        gvrStream.Read(finalChunkData, 0, finalChunkData.Length);
-                        metadata.FinalChunk = Convert.ToBase64String(finalChunkData);
-
-                        break;
-                    }
-
-                    // We've found the GCIX header
-
-                    entry.HasEntryData = true;
-
-                    gvrStream.Position += GCIX_SIZE;
-                    uint magic = br.ReadUInt32();
-
-                    if (magic != GVRT_MAGIC)
-                    {
-                        throw new InvalidDataException($"Invalid GVRT data found in \"{outputFileName}\" at 0x{gvrStream.Position:X8}.");
-                    }
-
-                    // Size of the GVR data. Despite the GC being big endian, this data is always little endian.
-                    // So we don't use br.ReadUInt32Endian()
-
-                    uint gvrSize = br.ReadUInt32();
-
-                    // Go back to the beginning of the GCIX chunk
-
-                    gvrStream.Position -= 8 + GCIX_SIZE;
-
-                    using (FileStream fs = new FileStream(outputFileName + ".gvr", FileMode.Create, FileAccess.ReadWrite))
-                    {
-                        gvrStream.CopySliceTo(fs, (int)(gvrSize + 0x18));
-                    }
-
-                    // Add metadata entry
-
-                    entry.EntrySize = (uint)(gvrStream.Position - entryStartPosition);
-                    metadata.Entries.Add(entry);
-
-                    // Check if there are more GVR files
-
-                    if (gvrStream.Position >= gvrStream.Length)
-                    {
-                        throw new InvalidDataException($"Expected final data chunk in \"{outputFileName}\" at 0x{gvrStream.Position:X8}.");
-                    }
-
-                    uint hex = br.ReadUInt32();
-
-                    if (hex == FINAL_CHUNK_MAGIC)
-                    {
-                        gvrStream.Position -= 4;
-                        byte[] finalChunkData = new byte[FINAL_CHUNK_SIZE];
-                        gvrStream.Read(finalChunkData, 0, finalChunkData.Length);
-                        metadata.FinalChunk = Convert.ToBase64String(finalChunkData);
-
-                        break;
-                    }
-
-                    gvrStream.Position -= 4;
-                    currentTextureIndex++;
                 }
             }
 
