@@ -78,29 +78,36 @@ namespace RECV_Editor.File_Formats
 
                 // Read texture block data
 
-                //rdxStream.Position = textureDataBlockPosition;
+                // First of all, blocks do not appear to be consecutive.
+                // In some files, this is the order: 0, 1, 4, 2, 3
+                // Is it always like this? Let's do some checks just in case.
 
-                //uint numberOfTextures = br.ReadUInt32Endian(IsBigEndian);
+                if (textureDataBlockPosition <= unk1DataBlockPosition ||
+                    textureDataBlockPosition >= unk2DataBlockPosition)
+                {
+                    throw new InvalidDataException($"In file \"{rdxFileName}\", the texture block is in an unexpected position: 0x{textureDataBlockPosition:X8}");
+                }
 
-                //uint[] texturePositions = new uint[numberOfTextures];
-                //for (int tp = 0; tp < numberOfTextures; tp++)
-                //{
-                //    texturePositions[tp] = br.ReadUInt32Endian(IsBigEndian);
-                //}
+                rdxStream.Position = textureDataBlockPosition;
 
-                //for (int tp = 0; tp < numberOfTextures; tp++)
-                //{
-                //    rdxStream.Position = texturePositions[tp];
+                uint numberOfTextures = br.ReadUInt32Endian(IsBigEndian);
 
-                //    uint textureSize;
-                //    if (tp < numberOfTextures - 1) textureSize = texturePositions[tp + 1] - texturePositions[tp];
-                //    else textureSize = (uint)rdxStream.Length - texturePositions[tp];
+                uint[] texturePositions = new uint[numberOfTextures];
+                for (int tp = 0; tp < numberOfTextures; tp++)
+                {
+                    texturePositions[tp] = br.ReadUInt32Endian(IsBigEndian);
+                }
 
-                //    //using (SubStream tm2Stream = new SubStream(rdxStream, 0, textureSize, true))
-                //    //{
-                //    TM2.Extract(rdxStream, Path.Combine(outputFolder, $"TIM2-{tp:0000}"));
-                //    //}
-                //}
+                for (int tp = 0; tp < numberOfTextures; tp++)
+                {
+                    uint textureSize = tp == numberOfTextures - 1 ? unk2DataBlockPosition - texturePositions[tp] : texturePositions[tp + 1] - texturePositions[tp];
+
+                    rdxStream.Position = texturePositions[tp];
+                    byte[] textureData = new byte[textureSize];
+                    rdxStream.Read(textureData, 0, textureData.Length);
+
+                    File.WriteAllBytes(Path.Combine(outputFolder, $"{tp:0000}.pvr"), textureData);
+                }
             }
 
             return Results.Success;
