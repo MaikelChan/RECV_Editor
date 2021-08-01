@@ -65,6 +65,7 @@
     <Compile Include="Constants.cs" />
     <Compile Include="File Formats\AFS.cs" />
     <Compile Include="File Formats\ALD.cs" />
+    <Compile Include="File Formats\GVR.cs" />
     <Compile Include="File Formats\RDX_GameCube.cs" />
     <Compile Include="File Formats\RDX_PS2.cs" />
     <Compile Include="File Formats\Texts.cs" />

@@ -100,13 +100,8 @@ namespace RECV_Editor.File_Formats
 
                 for (int tp = 0; tp < numberOfTextures; tp++)
                 {
-                    uint textureSize = tp == numberOfTextures - 1 ? unk2DataBlockPosition - texturePositions[tp] : texturePositions[tp + 1] - texturePositions[tp];
-
                     rdxStream.Position = texturePositions[tp];
-                    byte[] textureData = new byte[textureSize];
-                    rdxStream.Read(textureData, 0, textureData.Length);
-
-                    File.WriteAllBytes(Path.Combine(outputFolder, $"{tp:0000}.pvr"), textureData);
+                    GVR.Extract(rdxStream, Path.Combine(outputFolder, $"GVR-{tp:0000}"));
                 }
             }
 

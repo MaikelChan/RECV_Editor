@@ -6,8 +6,9 @@ using System.Text;
 
 namespace RECV_Editor.File_Formats
 {
-    // Unconventional TIM2 format that can contain multiple actual TIM2 textures inside 
-
+    /// <summary>
+    /// Unconventional TIM2 format that can contain multiple actual TIM2 textures inside.
+    /// </summary>
     class TM2
     {
         const uint TIM2_MAGIC = 0x324d4954; // TIM2
@@ -17,12 +18,7 @@ namespace RECV_Editor.File_Formats
 
         const string METADATA_FILENAME = "metadata.json";
 
-        class TM2_Metadata
-        {
-            public List<TM2_MetadataEntry> Entries { get; set; } = new List<TM2_MetadataEntry>();
-        }
-
-        class TM2_MetadataEntry
+        class TM2_Entry
         {
             public uint EntrySize { get; set; } = 0;
 
@@ -32,6 +28,11 @@ namespace RECV_Editor.File_Formats
             public bool HasTM2Data { get; set; } = false;
             public uint TM2Size { get; set; } = 0;
             public byte TM2Format { get; set; } = 0;
+        }
+
+        class TM2_Metadata
+        {
+            public List<TM2_Entry> Entries { get; set; } = new List<TM2_Entry>();
         }
 
         public static void Extract(Stream tm2Stream, string outputFolder)
@@ -48,11 +49,10 @@ namespace RECV_Editor.File_Formats
                 {
                     string outputFileName = Path.Combine(outputFolder, $"{currentTextureIndex:0000}");
 
+                    TM2_Entry entry = new TM2_Entry();
+
                     long entryStartPosition = tm2Stream.Position;
-
                     uint magic = br.ReadUInt32();
-
-                    TM2_MetadataEntry entry = new TM2_MetadataEntry();
 
                     // Check if there's a PLI section before the TM2 data
                     if (magic == PLI_MAGIC)
@@ -154,7 +154,7 @@ namespace RECV_Editor.File_Formats
             {
                 for (int e = 0; e < metadata.Entries.Count; e++)
                 {
-                    TM2_MetadataEntry entry = metadata.Entries[e];
+                    TM2_Entry entry = metadata.Entries[e];
 
                     string inputFileName = Path.Combine(inputFolder, $"{e:0000}.TM2");
 

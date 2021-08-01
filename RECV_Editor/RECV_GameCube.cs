@@ -23,7 +23,7 @@ namespace RECV_Editor
         protected override bool IsBigEndian => true;
 
         // TODO: Move to RECV?
-        const int MAX_EXTRACTION_PROGRESS_STEPS = 4;
+        const int MAX_EXTRACTION_PROGRESS_STEPS = 7;
         const int MAX_INSERTION_PROGRESS_STEPS = 5;
 
         public override void ExtractAll(string inputFolder, string outputFolder, string tablesFolder, int language, IProgress<ProgressInfo> progress)
@@ -86,7 +86,7 @@ namespace RECV_Editor
                     string sysmesInputFolder = discInputFolder;
                     string sysmesFileName = $"sysmes{languageIndexString}.ald";
                     string sysmesOutputFolder = Path.ChangeExtension(Path.Combine(discOutputFolder, languageCode, sysmesFileName), null);
-                    ExtractSysmes(sysmesInputFolder, sysmesFileName, sysmesOutputFolder, table, progress, ref currentProgressValue, MAX_EXTRACTION_PROGRESS_STEPS * DiscCount);
+                    ExtractSysmes(sysmesInputFolder, sysmesFileName, sysmesOutputFolder, table, progress, ref currentProgressValue, MAX_EXTRACTION_PROGRESS_STEPS);
                 }
 
                 // Extract AFS files
@@ -97,7 +97,7 @@ namespace RECV_Editor
                     string rdxLnkInputFolder = discInputFolder;
                     string rdxLnkFileName = $"rdx_lnk{disc}.afs";
                     rdxLnkOutputFolder = Path.ChangeExtension(Path.Combine(discOutputFolder, rdxLnkFileName), null);
-                    ExtractRdxLnk(rdxLnkInputFolder, rdxLnkFileName, rdxLnkOutputFolder, progress, ref currentProgressValue, MAX_EXTRACTION_PROGRESS_STEPS * DiscCount);
+                    ExtractRdxLnk(rdxLnkInputFolder, rdxLnkFileName, rdxLnkOutputFolder, progress, ref currentProgressValue, MAX_EXTRACTION_PROGRESS_STEPS);
                 }
 
                 // Decompress files in RDX_LNK1
@@ -117,7 +117,7 @@ namespace RECV_Editor
                 {
 #endif
                     Logger.Append($"Extracting RDX file \"{rdxFiles[f]}\"...");
-                    progress?.Report(new ProgressInfo($"Extracting RDX files... ({currentRdxFile++}/{rdxFiles.Length})", currentProgressValue, MAX_EXTRACTION_PROGRESS_STEPS * DiscCount));
+                    progress?.Report(new ProgressInfo($"Extracting RDX files... ({currentRdxFile++}/{rdxFiles.Length})", currentProgressValue, MAX_EXTRACTION_PROGRESS_STEPS));
 
                     byte[] rdxData = File.ReadAllBytes(rdxFiles[f]);
                     byte[] rdxUncompressedData = PRS.Decompress(rdxData);
@@ -136,7 +136,7 @@ namespace RECV_Editor
 
             // Finish process
 
-            progress?.Report(new ProgressInfo("Done!", ++currentProgressValue, MAX_EXTRACTION_PROGRESS_STEPS * DiscCount));
+            progress?.Report(new ProgressInfo("Done!", ++currentProgressValue, MAX_EXTRACTION_PROGRESS_STEPS));
             Logger.Append("Extract all process has finished. ------------------------------------------------------------------");
 
             GC.Collect();
