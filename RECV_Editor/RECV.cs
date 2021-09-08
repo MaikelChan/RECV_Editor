@@ -1,4 +1,4 @@
-﻿using AFSPacker;
+﻿using AFSLib;
 using RECV_Editor.File_Formats;
 using System;
 using System.IO;
@@ -75,7 +75,7 @@ namespace RECV_Editor
             }
         }
 
-        protected void AFS_NotifyProgress(AFS.NotificationTypes type, string message)
+        protected void AFS_NotifyProgress(NotificationType type, string message)
         {
             Logger.Append(message, (Logger.LogTypes)type);
         }
@@ -109,9 +109,12 @@ namespace RECV_Editor
             Logger.Append($"Extracting \"{rdxLnkPath}\"...");
             progress?.Report(new ProgressInfo($"Extracting \"{rdxLinkFileName}\"...", ++currentProgressValue, maxProgressSteps));
 
-            AFS.NotifyProgress += AFS_NotifyProgress;
-            AFS.ExtractAFS(rdxLnkPath, outputFolder);
-            AFS.NotifyProgress -= AFS_NotifyProgress;
+            using (AFS afs = new AFS(rdxLnkPath))
+            {
+                afs.NotifyProgress += AFS_NotifyProgress;
+                afs.ExtractAllEntriesToDirectory(outputFolder);
+                afs.NotifyProgress -= AFS_NotifyProgress;
+            }
         }
 
         #endregion

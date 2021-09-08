@@ -1,4 +1,4 @@
-﻿using AFSPacker;
+﻿using AFSLib;
 using PSO.PRS;
 using RECV_Editor.File_Formats;
 using System;
@@ -207,7 +207,6 @@ namespace RECV_Editor
             string SYSMES_ALD_Path = $"{languageCode}/SYSMES{languageIndex}.ALD";
             string RDX_LNK_AFS_Path = $"{languageCode}/RDX_LNK{languageIndex}.AFS";
 
-            string original_RDX_LNK = Path.Combine(originalDataFolder, RDX_LNK_AFS_Path);
             string input_RDX_LNK = Path.Combine(inputFolder, RDX_LNK_AFS_Path);
             string input_RDX_LNK_folder = Path.ChangeExtension(input_RDX_LNK, null);
             string output_RDX_LNK = Path.Combine(outputFolder, RDX_LNK_AFS_Path);
@@ -240,17 +239,7 @@ namespace RECV_Editor
 
             // Extract original RDX_LNK1 file
 
-            if (!File.Exists(original_RDX_LNK))
-            {
-                throw new FileNotFoundException($"File \"{original_RDX_LNK}\" does not exist!", original_RDX_LNK);
-            }
-
-            Logger.Append($"Extracting \"{original_RDX_LNK}\"...");
-            progress?.Report(new ProgressInfo($"Extracting \"{RDX_LNK_AFS_Path}\"...", ++currentProgressValue, MAX_INSERTION_PROGRESS_STEPS));
-
-            AFS.NotifyProgress += AFS_NotifyProgress;
-            AFS.ExtractAFS(original_RDX_LNK, output_RDX_LNK_folder);
-            AFS.NotifyProgress -= AFS_NotifyProgress;
+            ExtractRdxLnk(originalDataFolder, RDX_LNK_AFS_Path, output_RDX_LNK_folder, progress, ref currentProgressValue, MAX_INSERTION_PROGRESS_STEPS);
 
             // Rename PS2 RDX files for convenience
 
@@ -325,9 +314,21 @@ namespace RECV_Editor
             Logger.Append($"Generating \"{output_RDX_LNK}\"...");
             progress?.Report(new ProgressInfo($"Generating \"{output_RDX_LNK}\"...", ++currentProgressValue, MAX_INSERTION_PROGRESS_STEPS));
 
-            AFS.NotifyProgress += AFS_NotifyProgress;
-            AFS.CreateAFS(output_RDX_LNK_folder, output_RDX_LNK);
-            AFS.NotifyProgress -= AFS_NotifyProgress;
+            string[] rdxFiles = Directory.GetFiles(output_RDX_LNK_folder);
+
+            using (AFS afs = new AFS())
+            {
+                afs.AttributesInfoType = AttributesInfoType.NoAttributes;
+                afs.NotifyProgress += AFS_NotifyProgress;
+
+                for (int f = 0; f < rdxFiles.Length; f++)
+                {
+                    afs.AddEntryFromFile(rdxFiles[f]);
+                }
+
+                afs.SaveToFile(output_RDX_LNK);
+                afs.NotifyProgress -= AFS_NotifyProgress;
+            }
 
             Directory.Delete(output_RDX_LNK_folder, true);
 

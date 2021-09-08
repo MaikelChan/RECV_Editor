@@ -145,9 +145,125 @@ namespace RECV_Editor
             MessageBox.Show($"The process has finished successfully in {sw.Elapsed.TotalSeconds} seconds.", "Success!", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
-        public override void InsertAll(string inputFolder, string outputFolder, string originalDataFolder, string tablesFolder, int languageIndex, IProgress<ProgressInfo> progress)
+        public override void InsertAll(string inputFolder, string outputFolder, string originalDataFolder, string tablesFolder, int language, IProgress<ProgressInfo> progress)
         {
-            throw new NotImplementedException("GameCube data insertion not implemented.");
+            if (string.IsNullOrEmpty(inputFolder))
+            {
+                throw new ArgumentNullException(nameof(inputFolder));
+            }
+
+            if (!Directory.Exists(inputFolder))
+            {
+                throw new DirectoryNotFoundException($"Directory \"{inputFolder}\" does not exist!");
+            }
+
+            if (string.IsNullOrEmpty(outputFolder))
+            {
+                throw new ArgumentNullException(nameof(outputFolder));
+            }
+
+            if (string.IsNullOrEmpty(originalDataFolder))
+            {
+                throw new ArgumentNullException(nameof(originalDataFolder));
+            }
+
+            if (!Directory.Exists(originalDataFolder))
+            {
+                throw new DirectoryNotFoundException($"Directory \"{originalDataFolder}\" does not exist!");
+            }
+
+            Table table = GetTableFromLanguage(tablesFolder, language);
+
+            // Begin process
+
+            Stopwatch sw = new Stopwatch();
+            sw.Start();
+
+            int currentProgressValue = 0;
+
+            Logger.Append("Insert all process has begun. ----------------------------------------------------------------------");
+
+            for (int disc = 1; disc < DiscCount + 1; disc++)
+            {
+                string discInputFolder = Path.Combine(inputFolder, Platforms.GameCube.ToString(), $"Disc {disc}");
+
+                if (!Directory.Exists(discInputFolder))
+                {
+                    throw new DirectoryNotFoundException($"Directory \"{discInputFolder}\" does not exist!");
+                }
+
+                string discOutputFolder = Path.Combine(outputFolder, Platforms.GameCube.ToString(), $"Disc {disc}");
+
+                string discOriginalDataFolder = Path.Combine(originalDataFolder, Platforms.GameCube.ToString(), $"Disc {disc}", "files");
+
+                if (!Directory.Exists(discOriginalDataFolder))
+                {
+                    throw new DirectoryNotFoundException($"Directory \"{discOriginalDataFolder}\" does not exist!");
+                }
+
+                // Generate some paths based on selected language
+
+                string languageCode = languageCodes[language];
+                int languageIndex = languageIndices[language];
+                string outputLanguageFolder = Path.Combine(discOutputFolder, languageCode);
+                string SYSMES_ALD_Path = $"sysmes{languageIndex}.ald";
+                string RDX_LNK_AFS_Path = $"rdx_lnk{disc}.afs";
+
+                string input_RDX_LNK = Path.Combine(discInputFolder, RDX_LNK_AFS_Path);
+                string input_RDX_LNK_folder = Path.ChangeExtension(input_RDX_LNK, null);
+                string output_RDX_LNK = Path.Combine(discOutputFolder, RDX_LNK_AFS_Path);
+                string output_RDX_LNK_folder = Path.ChangeExtension(output_RDX_LNK, null);
+
+                // Delete existing output folder if it exists
+
+                if (Directory.Exists(outputLanguageFolder))
+                {
+                    Logger.Append($"Deleting \"{outputLanguageFolder}\" folder...");
+                    Directory.Delete(outputLanguageFolder, true);
+                }
+
+                // Create output folder
+
+                if (!Directory.Exists(outputLanguageFolder))
+                {
+                    Logger.Append($"Creating \"{outputLanguageFolder}\" folder...");
+                    Directory.CreateDirectory(outputLanguageFolder);
+                }
+
+                // Generate SYSMES1.ALD
+
+                string SYSMES = Path.Combine(discOutputFolder, SYSMES_ALD_Path);
+
+                Logger.Append($"Generating \"{SYSMES}\"...");
+                progress?.Report(new ProgressInfo($"Generating \"{SYSMES_ALD_Path}\"...", ++currentProgressValue, MAX_INSERTION_PROGRESS_STEPS));
+
+                ALD.Insert(Path.ChangeExtension(Path.Combine(discInputFolder, languageCode, SYSMES_ALD_Path), null), SYSMES, table, IsBigEndian);
+
+                // Extract original RDX_LNK1 file
+
+                ExtractRdxLnk(discOriginalDataFolder, RDX_LNK_AFS_Path, output_RDX_LNK_folder, progress, ref currentProgressValue, MAX_INSERTION_PROGRESS_STEPS);
+
+
+
+
+
+
+
+
+
+
+
+
+                // Finish process
+
+                progress?.Report(new ProgressInfo("Done!", ++currentProgressValue, MAX_INSERTION_PROGRESS_STEPS));
+                Logger.Append("Insert all process has finished. -------------------------------------------------------------------");
+
+                GC.Collect();
+
+                sw.Stop();
+                MessageBox.Show($"The process has finished successfully in {sw.Elapsed.TotalSeconds} seconds.", "Success!", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
         }
 
         public static string GetLanguageCode(int language)
