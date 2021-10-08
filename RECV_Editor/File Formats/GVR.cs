@@ -232,5 +232,10 @@ namespace RECV_Editor.File_Formats
 
             File.WriteAllText(Path.Combine(outputFolder, METADATA_FILENAME), JsonConvert.SerializeObject(metadata, Formatting.Indented));
         }
+
+        public static void Insert(string inputFolder, Stream gvrStream)
+        {
+
+        }
     }
 }

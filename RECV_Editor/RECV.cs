@@ -1,4 +1,5 @@
 ﻿using AFSLib;
+using PSO.PRS;
 using RECV_Editor.File_Formats;
 using System;
 using System.IO;
@@ -115,6 +116,67 @@ namespace RECV_Editor
                 afs.ExtractAllEntriesToDirectory(outputFolder);
                 afs.NotifyProgress -= AFS_NotifyProgress;
             }
+        }
+
+        #endregion
+
+        #region Insertion Methods
+
+        protected void InsertRdxFiles(string inputRdxLnkFolder, string[] outputRdxFiles, int language, Table table, Platforms platform, IProgress<ProgressInfo> progress, ref int currentProgressValue, int maxProgressSteps)
+        {
+            if (!Directory.Exists(inputRdxLnkFolder))
+            {
+                throw new DirectoryNotFoundException($"Directory \"{inputRdxLnkFolder}\" does not exist!");
+            }
+
+            RDX rdx = RDX.GetRDX(platform);
+
+            int currentRdxFile = 1;
+            currentProgressValue++;
+
+#if MULTITHREADING
+            Parallel.For(0, outputRdxFiles.Length, (r) =>
+#else
+            for (int r = 0; r < outputRdxFiles.Length; r++)
+#endif
+            {
+                string inputRdxPath = Path.Combine(inputRdxLnkFolder, Path.GetFileName(outputRdxFiles[r]) + RDX_EXTRACTED_FOLDER_SUFFIX);
+
+                progress?.Report(new ProgressInfo($"Inserting RDX files... ({currentRdxFile++}/{outputRdxFiles.Length})", currentProgressValue, maxProgressSteps));
+
+                if (!Directory.Exists(inputRdxPath))
+                {
+                    Logger.Append($"Exctracted RDX \"{inputRdxPath}\" not found. Skipping...");
+#if MULTITHREADING
+                    return;
+#else
+                    continue;
+#endif
+                }
+
+                Logger.Append($"Inserting RDX file \"{inputRdxPath}\"...");
+
+                byte[] rdxData = File.ReadAllBytes(outputRdxFiles[r]);
+                byte[] rdxUncompressedData = PRS.Decompress(rdxData);
+                //File.WriteAllBytes(outputRdxFiles[r], rdxUncompressedData);
+
+                using (MemoryStream ms = new MemoryStream(rdxUncompressedData.Length))
+                {
+                    ms.Write(rdxUncompressedData, 0, rdxUncompressedData.Length);
+                    ms.Position = 0;
+
+                    rdx.Insert(inputRdxPath, ms, Path.GetFileName(outputRdxFiles[r]), language, table);
+
+                    rdxData = PRS.Compress(ms.ToArray());
+                    //File.WriteAllBytes(outputRdxFiles[r] + ".unc", ms.ToArray());
+                }
+
+                File.WriteAllBytes(outputRdxFiles[r], rdxData);
+#if MULTITHREADING
+            });
+#else
+            }
+#endif
         }
 
         #endregion

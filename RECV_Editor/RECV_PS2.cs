@@ -255,59 +255,7 @@ namespace RECV_Editor
 
             // Generate RDX files
 
-            if (!Directory.Exists(input_RDX_LNK_folder))
-            {
-                throw new DirectoryNotFoundException($"Directory \"{input_RDX_LNK_folder}\" does not exist!");
-            }
-
-            RDX rdx = RDX.GetRDX(Platforms.PS2);
-
-            int currentRdxFile = 1;
-            currentProgressValue++;
-
-#if MULTITHREADING
-            Parallel.For(0, outputRdxFiles.Length, (r) =>
-#else
-            for (int r = 0; r < outputRdxFiles.Length; r++)
-#endif
-            {
-                string inputRdxPath = Path.Combine(input_RDX_LNK_folder, Path.GetFileName(outputRdxFiles[r]) + RDX_EXTRACTED_FOLDER_SUFFIX);
-
-                progress?.Report(new ProgressInfo($"Inserting RDX files... ({currentRdxFile++}/{outputRdxFiles.Length})", currentProgressValue, MAX_INSERTION_PROGRESS_STEPS));
-
-                if (!Directory.Exists(inputRdxPath))
-                {
-                    Logger.Append($"Exctracted RDX \"{inputRdxPath}\" not found. Skipping...");
-#if MULTITHREADING
-                    return;
-#else
-                    continue;
-#endif
-                }
-
-                Logger.Append($"Inserting RDX file \"{inputRdxPath}\"...");
-
-                byte[] rdxData = File.ReadAllBytes(outputRdxFiles[r]);
-                byte[] rdxUncompressedData = PRS.Decompress(rdxData);
-                //File.WriteAllBytes(outputRdxFiles[r], rdxUncompressedData);
-
-                using (MemoryStream ms = new MemoryStream(rdxUncompressedData.Length))
-                {
-                    ms.Write(rdxUncompressedData, 0, rdxUncompressedData.Length);
-                    ms.Position = 0;
-
-                    rdx.Insert(inputRdxPath, ms, Path.GetFileName(outputRdxFiles[r]), language, table);
-
-                    rdxData = PRS.Compress(ms.ToArray());
-                    //File.WriteAllBytes(outputRdxFiles[r] + ".unc", ms.ToArray());
-                }
-
-                File.WriteAllBytes(outputRdxFiles[r], rdxData);
-#if MULTITHREADING
-            });
-#else
-            }
-#endif
+            InsertRdxFiles(input_RDX_LNK_folder, outputRdxFiles, language, table, Platforms.PS2, progress, ref currentProgressValue, MAX_INSERTION_PROGRESS_STEPS);
 
             // Insert RDX files into new RDX_LNK1 file
 

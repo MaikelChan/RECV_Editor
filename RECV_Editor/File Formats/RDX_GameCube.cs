@@ -110,7 +110,190 @@ namespace RECV_Editor.File_Formats
 
         public override void Insert(string inputFolder, Stream rdxStream, string rdxFileName, int language, Table table)
         {
-            throw new NotImplementedException("GameCube RDX insertion not implemented.");
+            if (string.IsNullOrEmpty(inputFolder))
+            {
+                throw new ArgumentNullException(nameof(inputFolder));
+            }
+
+            if (!Directory.Exists(inputFolder))
+            {
+                throw new DirectoryNotFoundException($"Directory \"{inputFolder}\" does not exist!");
+            }
+
+            if (rdxStream == null)
+            {
+                throw new ArgumentNullException(nameof(rdxStream));
+            }
+
+            if (table == null)
+            {
+                throw new ArgumentNullException(nameof(table));
+            }
+
+            // Gather data we need to preserve from the original RDX
+
+            using (BinaryReader br = new BinaryReader(rdxStream, Encoding.UTF8, true))
+            using (BinaryWriter bw = new BinaryWriter(rdxStream, Encoding.UTF8, true))
+            {
+                uint magic = br.ReadUInt32Endian(IsBigEndian);
+                if (magic != MAGIC)
+                {
+                    throw new InvalidDataException("Not a valid RDX file.");
+                }
+
+                rdxStream.Position = 0x10;
+
+                uint textDataBlockPosition = br.ReadUInt32Endian(IsBigEndian);
+                uint unk1DataBlockPosition = br.ReadUInt32Endian(IsBigEndian);
+                uint unk2DataBlockPosition = br.ReadUInt32Endian(IsBigEndian);
+                uint unk3DataBlockPosition = br.ReadUInt32Endian(IsBigEndian);
+                uint textureDataBlockPosition = br.ReadUInt32Endian(IsBigEndian);
+
+                rdxStream.Position = 0x60;
+
+                byte[] authorName = new byte[32];
+                rdxStream.Read(authorName, 0, 32);
+
+                // Start reading the text block data
+
+                rdxStream.Position = textDataBlockPosition;
+
+                uint[] subBlockPositions = new uint[TEXT_DATA_BLOCK_SUBBLOCK_COUNT];
+                for (int sb = 0; sb < TEXT_DATA_BLOCK_SUBBLOCK_COUNT; sb++)
+                {
+                    subBlockPositions[sb] = br.ReadUInt32Endian(IsBigEndian);
+                }
+
+                // Get the texts subBlock corresponding to the selected language
+
+                int rdxLanguageIndex = GetRDXLanguageIndex(language);
+                uint textSubBlockPosition = subBlockPositions[languageSubBlockIndices[rdxLanguageIndex]];
+
+                // Check if the texts subBlock is null, and do stuff if not null
+
+                if (textSubBlockPosition != 0)
+                {
+                    // Find the next non-null subBlock to calculate the texts subBlock size
+
+                    uint nextSubBlockPosition = unk1DataBlockPosition;
+
+                    for (uint sb = 0; sb < TEXT_DATA_BLOCK_SUBBLOCK_COUNT; sb++)
+                    {
+                        if (subBlockPositions[sb] == 0) continue;
+                        if (subBlockPositions[sb] <= textSubBlockPosition) continue;
+                        if (subBlockPositions[sb] < nextSubBlockPosition) nextSubBlockPosition = subBlockPositions[sb];
+                    }
+
+                    uint textsSubBlockSize = nextSubBlockPosition - textSubBlockPosition;
+
+                    string texts = File.ReadAllText(Path.Combine(inputFolder, string.Format(STRINGS_FILE_NAME, rdxFileName, RECV_GameCube.GetLanguageCode(language))));
+
+                    using (MemoryStream textsStream = new MemoryStream())
+                    {
+                        Texts.Insert(texts, textsStream, table, IsBigEndian);
+
+                        if (textsStream.Length > textsSubBlockSize)
+                        {
+                            // If the new textsBlock is bigger than the old one,
+                            // place it just where the textureDataBlock is and move the textureDataBlock after the texts.
+                            // The reasons for this are explained in RDX_PS2. I don't know if the same applies to GameCube,
+                            // but let's be safe, and also keep the code consistent.
+
+
+                            // TODO: Redo this -----------------------------------------------------------------------------
+
+                            // Delete previous sub subBlock 14 and 15 data
+
+                            rdxStream.Position = subBlockPositions[14];
+                            for (int b = 0; b < textsSubBlockSize; b++) rdxStream.WriteByte(0);
+
+                            // Copy the whole texture block
+
+                            byte[] textureData = new byte[rdxStream.Length - textureDataBlockPosition];
+                            rdxStream.Position = textureDataBlockPosition;
+                            rdxStream.Read(textureData, 0, textureData.Length);
+
+                            // Update texts block pointer
+
+                            rdxStream.Position = textDataBlockPosition + (4 * 14);
+                            bw.WriteEndian(textureDataBlockPosition, IsBigEndian);
+
+                            // Copy texts data to texture block area
+
+                            rdxStream.Position = textureDataBlockPosition;
+                            textsStream.Position = 0;
+                            textsStream.CopyTo(rdxStream);
+
+                            // Place the texture block after the new texts block
+
+                            uint previousTextureDataBlockPosition = textureDataBlockPosition;
+                            textureDataBlockPosition = Utils.Padding((uint)rdxStream.Position, 16);
+                            rdxStream.Position = textureDataBlockPosition;
+                            rdxStream.Write(textureData, 0, textureData.Length);
+
+                            // Update texture block pointer
+
+                            rdxStream.Position = 0x20;
+                            bw.WriteEndian(textureDataBlockPosition, IsBigEndian);
+
+                            // Change all absolute pointers in the texture block
+
+                            rdxStream.Position = textureDataBlockPosition;
+
+                            uint textureCount = br.ReadUInt32Endian(IsBigEndian);
+
+                            for (int tp = 0; tp < textureCount; tp++)
+                            {
+                                uint pointer = br.ReadUInt32Endian(IsBigEndian);
+                                pointer += textureDataBlockPosition - previousTextureDataBlockPosition;
+                                rdxStream.Position -= 4;
+                                bw.WriteEndian(pointer, IsBigEndian);
+                            }
+                        }
+                        else
+                        {
+                            // If the new textsBlock fits inside the old one, just overwrite.
+
+                            // Copy texts data
+
+                            rdxStream.Position = textSubBlockPosition;
+                            textsStream.Position = 0;
+                            textsStream.CopyTo(rdxStream);
+
+                            // Fill remaining bytes with zeroes
+
+                            int remainingBytes = (int)(nextSubBlockPosition - rdxStream.Position);
+                            for (int b = 0; b < remainingBytes; b++) rdxStream.WriteByte(0);
+                        }
+                    }
+                }
+
+                // Read texture block data
+
+                rdxStream.Position = textureDataBlockPosition;
+
+                uint numberOfTextures = br.ReadUInt32Endian(IsBigEndian);
+
+                uint[] texturePositions = new uint[numberOfTextures];
+                for (int tp = 0; tp < numberOfTextures; tp++)
+                {
+                    texturePositions[tp] = br.ReadUInt32Endian(IsBigEndian);
+                }
+
+                for (int tp = 0; tp < numberOfTextures; tp++)
+                {
+                    string GVRFolder = Path.Combine(inputFolder, $"GVR-{tp:0000}");
+                    if (!Directory.Exists(GVRFolder)) continue;
+
+                    rdxStream.Position = texturePositions[tp];
+
+                    //uint textureSize;
+                    //if (tp < numberOfTextures - 1) textureSize = texturePositions[tp + 1] - texturePositions[tp];
+                    //else textureSize = (uint)rdxStream.Length - texturePositions[tp];
+
+                    GVR.Insert(GVRFolder, rdxStream);
+                }
+            }
         }
 
         int GetRDXLanguageIndex(int language)

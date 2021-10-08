@@ -242,9 +242,11 @@ namespace RECV_Editor
                 // Extract original RDX_LNK1 file
 
                 ExtractRdxLnk(discOriginalDataFolder, RDX_LNK_AFS_Path, output_RDX_LNK_folder, progress, ref currentProgressValue, MAX_INSERTION_PROGRESS_STEPS);
+                string[] outputRdxFiles = Directory.GetFiles(output_RDX_LNK_folder);
 
+                // Generate RDX files
 
-
+                InsertRdxFiles(input_RDX_LNK_folder, outputRdxFiles, language, table, Platforms.GameCube, progress, ref currentProgressValue, MAX_INSERTION_PROGRESS_STEPS);
 
 
 
