@@ -3,6 +3,7 @@ using PSO.PRS;
 using RECV_Editor.File_Formats;
 using System;
 using System.IO;
+using System.Threading.Tasks;
 
 namespace RECV_Editor
 {
@@ -134,6 +135,9 @@ namespace RECV_Editor
             int currentRdxFile = 1;
             currentProgressValue++;
 
+            // Needed for Parallel.For, which can't have ref values.
+            int currentProgress = currentProgressValue;
+
 #if MULTITHREADING
             Parallel.For(0, outputRdxFiles.Length, (r) =>
 #else
@@ -142,7 +146,7 @@ namespace RECV_Editor
             {
                 string inputRdxPath = Path.Combine(inputRdxLnkFolder, Path.GetFileName(outputRdxFiles[r]) + RDX_EXTRACTED_FOLDER_SUFFIX);
 
-                progress?.Report(new ProgressInfo($"Inserting RDX files... ({currentRdxFile++}/{outputRdxFiles.Length})", currentProgressValue, maxProgressSteps));
+                progress?.Report(new ProgressInfo($"Inserting RDX files... ({currentRdxFile++}/{outputRdxFiles.Length})", currentProgress, maxProgressSteps));
 
                 if (!Directory.Exists(inputRdxPath))
                 {
