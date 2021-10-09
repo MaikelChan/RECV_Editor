@@ -1,12 +1,9 @@
 ﻿using Microsoft.WindowsAPICodePack.Dialogs;
 using Microsoft.WindowsAPICodePack.Taskbar;
-using PSO.PRS;
-using RECV_Editor.File_Formats;
 using RECV_Editor.Properties;
 using System;
 using System.Diagnostics;
 using System.Drawing;
-using System.IO;
 using System.Reflection;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -137,42 +134,42 @@ namespace RECV_Editor
             SetProcessRunning(false);
         }
 
-        private void DebugExtractButton_Click(object sender, EventArgs e)
-        {
-            const string rdxfile = @"C:\Users\Miguel\Desktop\RECV_Tests\r4_0010.rdx.unc";
-            const string rdxfile2 = @"C:\Users\Miguel\Desktop\RECV_Tests\r4_0010.rdx.unc2";
-            const int languageIndex = 3;
+        //private void DebugExtractButton_Click(object sender, EventArgs e)
+        //{
+        //    const string rdxfile = @"C:\Users\Miguel\Desktop\RECV_Tests\r4_0010.rdx.unc";
+        //    const string rdxfile2 = @"C:\Users\Miguel\Desktop\RECV_Tests\r4_0010.rdx.unc2";
+        //    const int languageIndex = 3;
 
-            Table table = recv.GetTableFromLanguage(settings.Data.TablesFolder, languageIndex);
+        //    Table table = recv.GetTableFromLanguage(settings.Data.TablesFolder, languageIndex);
 
-            RDX rdx = RDX.GetRDX(RECV.Platforms.PS2);
+        //    RDX rdx = RDX.GetRDX(RECV.Platforms.PS2);
 
-            rdx.Extract(rdxfile, Path.GetFileName(rdxfile), rdxfile + "_extract", languageIndex, table);
+        //    rdx.Extract(rdxfile, Path.GetFileName(rdxfile), rdxfile + "_extract", languageIndex, table);
 
-            if (File.Exists(rdxfile2)) File.Delete(rdxfile2);
-            File.Copy(rdxfile, rdxfile2);
+        //    if (File.Exists(rdxfile2)) File.Delete(rdxfile2);
+        //    File.Copy(rdxfile, rdxfile2);
 
-            using (FileStream outputStream = new FileStream(rdxfile2, FileMode.Open, FileAccess.ReadWrite))
-            {
-                rdx.Insert(rdxfile + "_extract", outputStream, Path.GetFileName(rdxfile), languageIndex, table);
-            }
+        //    using (FileStream outputStream = new FileStream(rdxfile2, FileMode.Open, FileAccess.ReadWrite))
+        //    {
+        //        rdx.Insert(rdxfile + "_extract", outputStream, Path.GetFileName(rdxfile), languageIndex, table);
+        //    }
 
-            rdx.Extract(rdxfile2, Path.GetFileName(rdxfile2), rdxfile + "_extract2", languageIndex, table);
-        }
+        //    rdx.Extract(rdxfile2, Path.GetFileName(rdxfile2), rdxfile + "_extract2", languageIndex, table);
+        //}
 
-        private void DebugDecompressButton_Click(object sender, EventArgs e)
-        {
-            string prsFile = @"D:\Romhacking\Proyectos\Resident Evil Code Veronica\Project\00000162";
-            byte[] prsData = File.ReadAllBytes(prsFile);
-            byte[] uncompressedPrsData = PRS.Decompress(prsData);
+        //private void DebugDecompressButton_Click(object sender, EventArgs e)
+        //{
+        //    string prsFile = @"D:\Romhacking\Proyectos\Resident Evil Code Veronica\Project\00000162";
+        //    byte[] prsData = File.ReadAllBytes(prsFile);
+        //    byte[] uncompressedPrsData = PRS.Decompress(prsData);
 
-            File.WriteAllBytes(prsFile + ".unc", uncompressedPrsData);
+        //    File.WriteAllBytes(prsFile + ".unc", uncompressedPrsData);
 
-            Table table = recv.GetTableFromLanguage(settings.Data.TablesFolder, 0);
+        //    Table table = recv.GetTableFromLanguage(settings.Data.TablesFolder, 0);
 
-            RDX rdx = RDX.GetRDX(RECV.Platforms.PS2);
-            rdx.Extract(uncompressedPrsData, Path.GetFileName(prsFile), prsFile + "_output", (int)RECV.Platforms.PS2, table);
-        }
+        //    RDX rdx = RDX.GetRDX(RECV.Platforms.PS2);
+        //    rdx.Extract(uncompressedPrsData, Path.GetFileName(prsFile), prsFile + "_output", (int)RECV.Platforms.PS2, table);
+        //}
 
         private void ChangePathsMenuItem_Click(object sender, EventArgs e)
         {
@@ -199,13 +196,6 @@ namespace RECV_Editor
 
             ExtractAllButton.Enabled = !value;
             InsertAllButton.Enabled = !value;
-            //DebugGroup.Enabled = !value;
-            //DebugExtractButton.Enabled = !value;
-            //DebugDecompressButton.Enabled = !value;
-
-            DebugGroup.Enabled = false;
-            DebugExtractButton.Enabled = false;
-            DebugDecompressButton.Enabled = false;
         }
 
         void UpdateStatus(RECV.ProgressInfo progressInfo)
