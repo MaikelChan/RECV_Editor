@@ -58,9 +58,62 @@ namespace RECV_Editor
 
         protected const string RDX_EXTRACTED_FOLDER_SUFFIX = "_extract";
 
-        public abstract void ExtractAll(string inputFolder, string outputFolder, string tablesFolder, int language, IProgress<ProgressInfo> progress);
+        protected abstract void ExtractDisc(string discInputFolder, string discOutputFolder, Table table, int language, int disc, IProgress<ProgressInfo> progress, ref int currentProgress);
+        protected abstract void InsertDisc(string discInputFolder, string discOutputFolder, string discOriginalDataFolder, Table table, int language, int disc, IProgress<ProgressInfo> progress, ref int currentProgress);
 
-        protected abstract void InsertDisc(string inputFolder, string outputFolder, string originalDataFolder, Table table, int language, int disc, IProgress<ProgressInfo> progress, ref int currentProgress);
+        public void ExtractAll(string inputFolder, string outputFolder, string tablesFolder, int language, IProgress<ProgressInfo> progress)
+        {
+            if (string.IsNullOrEmpty(inputFolder))
+            {
+                throw new ArgumentNullException(nameof(inputFolder));
+            }
+
+            if (string.IsNullOrEmpty(outputFolder))
+            {
+                throw new ArgumentNullException(nameof(outputFolder));
+            }
+
+            if (string.IsNullOrEmpty(tablesFolder))
+            {
+                throw new ArgumentNullException(nameof(tablesFolder));
+            }
+
+            Table table = GetTableFromLanguage(tablesFolder, language);
+
+            // Begin process
+
+            Stopwatch sw = new Stopwatch();
+            sw.Start();
+
+            int currentProgressValue = 0;
+
+            Logger.Append("Extract all process has begun. ---------------------------------------------------------------------");
+
+            for (int disc = 1; disc < DiscCount + 1; disc++)
+            {
+                string discFolderName = DiscCount > 1 ? $"Disc {disc}" : string.Empty;
+                string discInputFolder = Path.Combine(inputFolder, Platform.ToString(), discFolderName);
+
+                if (!Directory.Exists(discInputFolder))
+                {
+                    throw new DirectoryNotFoundException($"Directory \"{discInputFolder}\" does not exist!");
+                }
+
+                string discOutputFolder = Path.Combine(outputFolder, Platform.ToString(), discFolderName);
+
+                ExtractDisc(discInputFolder, discOutputFolder, table, language, disc, progress, ref currentProgressValue);
+            }
+
+            // Finish process
+
+            progress?.Report(new ProgressInfo("Done!", ++currentProgressValue, MaxExtractionProgressSteps));
+            Logger.Append("Extract all process has finished. ------------------------------------------------------------------");
+
+            GC.Collect();
+
+            sw.Stop();
+            MessageBox.Show($"The process has finished successfully in {sw.Elapsed.TotalSeconds} seconds.", "Success!", MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
 
         public void InsertAll(string inputFolder, string outputFolder, string originalDataFolder, string tablesFolder, int language, IProgress<ProgressInfo> progress)
         {
@@ -183,19 +236,12 @@ namespace RECV_Editor
             ALD.Extract(sysmesPath, outputFolder, table, IsBigEndian);
         }
 
-        protected void ExtractRdxLnk(string rdxLnkFolder, string rdxLinkFileName, string outputFolder, int disc, IProgress<ProgressInfo> progress, ref int currentProgressValue, int maxProgressSteps)
+        protected void ExtractAfs(string inputAfsFile, string outputFolder, int disc, IProgress<ProgressInfo> progress, ref int currentProgressValue, int maxProgressSteps)
         {
-            string rdxLnkPath = Path.Combine(rdxLnkFolder, rdxLinkFileName);
+            Logger.Append($"Extracting \"{inputAfsFile}\"...");
+            progress?.Report(new ProgressInfo($"Extracting \"{Path.GetFileName(inputAfsFile)}\" (Disc {disc})...", ++currentProgressValue, maxProgressSteps));
 
-            if (!File.Exists(rdxLnkPath))
-            {
-                throw new FileNotFoundException($"File \"{rdxLnkPath}\" does not exist!", rdxLnkPath);
-            }
-
-            Logger.Append($"Extracting \"{rdxLnkPath}\"...");
-            progress?.Report(new ProgressInfo($"Extracting \"{rdxLinkFileName}\" (Disc {disc})...", ++currentProgressValue, maxProgressSteps));
-
-            using (AFS afs = new AFS(rdxLnkPath))
+            using (AFS afs = new AFS(inputAfsFile))
             {
                 afs.NotifyProgress += AFS_NotifyProgress;
                 afs.ExtractAllEntriesToDirectory(outputFolder);
@@ -203,11 +249,46 @@ namespace RECV_Editor
             }
         }
 
+        protected void ExtractRdxFiles(string[] rdxFiles, int language, int disc, Table table, IProgress<ProgressInfo> progress, ref int currentProgress)
+        {
+            RDX rdx = RDX.GetRDX(Platform);
+
+            currentProgress++;
+            int currentRdxFile = 1;
+
+            // Needed for Parallel.For, which can't have ref values.
+            int progressValue = currentProgress;
+
+#if MULTITHREADING
+            Parallel.For(0, rdxFiles.Length, (f) =>
+            {
+#else
+            for (int f = 0; f < rdxFiles.Length; f++)
+            {
+#endif
+                Logger.Append($"Extracting RDX file \"{rdxFiles[f]}\"...");
+                progress?.Report(new ProgressInfo($"Extracting RDX files (Disc {disc})... ({currentRdxFile++}/{rdxFiles.Length})", progressValue, MaxExtractionProgressSteps));
+
+                byte[] rdxData = File.ReadAllBytes(rdxFiles[f]);
+                byte[] rdxUncompressedData = PRS.Decompress(rdxData);
+                //File.WriteAllBytes(rdxFiles[f] + ".unc", rdxUncompressedData);
+
+                File.Delete(rdxFiles[f]);
+
+                RDX.Results result = rdx.Extract(rdxUncompressedData, Path.GetFileName(rdxFiles[f]), rdxFiles[f] + RDX_EXTRACTED_FOLDER_SUFFIX, language, table);
+                if (result == RDX.Results.NotValidRdxFile) Logger.Append($"\"{rdxFiles[f]}\" is not a valid RDX file. Ignoring.", Logger.LogTypes.Warning);
+#if MULTITHREADING
+            });
+#else
+            }
+#endif
+        }
+
         #endregion
 
         #region Insertion Methods
 
-        protected void InsertRdxFiles(string inputRdxLnkFolder, string[] outputRdxFiles, int language, int disc, Table table, Platforms platform, IProgress<ProgressInfo> progress, ref int currentProgressValue, int maxProgressSteps)
+        protected void InsertRdxFiles(string inputRdxLnkFolder, string[] outputRdxFiles, int language, int disc, Table table, Platforms platform, IProgress<ProgressInfo> progress, ref int currentProgress, int maxProgressSteps)
         {
             if (!Directory.Exists(inputRdxLnkFolder))
             {
@@ -217,10 +298,10 @@ namespace RECV_Editor
             RDX rdx = RDX.GetRDX(platform);
 
             int currentRdxFile = 1;
-            currentProgressValue++;
+            currentProgress++;
 
             // Needed for Parallel.For, which can't have ref values.
-            int currentProgress = currentProgressValue;
+            int progressValue = currentProgress;
 
 #if MULTITHREADING
             Parallel.For(0, outputRdxFiles.Length, (r) =>
@@ -230,7 +311,7 @@ namespace RECV_Editor
             {
                 string inputRdxPath = Path.Combine(inputRdxLnkFolder, Path.GetFileName(outputRdxFiles[r]) + RDX_EXTRACTED_FOLDER_SUFFIX);
 
-                progress?.Report(new ProgressInfo($"Inserting RDX files (Disc {disc})... ({currentRdxFile++}/{outputRdxFiles.Length})", currentProgress, maxProgressSteps));
+                progress?.Report(new ProgressInfo($"Inserting RDX files (Disc {disc})... ({currentRdxFile++}/{outputRdxFiles.Length})", progressValue, maxProgressSteps));
 
                 if (!Directory.Exists(inputRdxPath))
                 {
@@ -270,7 +351,7 @@ namespace RECV_Editor
         protected void GenerateAfs(string inputDirectory, string outputAfsFile, IProgress<ProgressInfo> progress, ref int currentProgress)
         {
             Logger.Append($"Generating \"{outputAfsFile}\"...");
-            progress?.Report(new ProgressInfo($"Generating \"{outputAfsFile}\"...", ++currentProgress, MaxInsertionProgressSteps));
+            progress?.Report(new ProgressInfo($"Generating \"{Path.GetFileName(outputAfsFile)}\"...", ++currentProgress, MaxInsertionProgressSteps));
 
             string[] rdxFiles = Directory.GetFiles(inputDirectory);
 

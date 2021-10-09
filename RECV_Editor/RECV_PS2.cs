@@ -1,13 +1,6 @@
-﻿using AFSLib;
-using PSO.PRS;
-using RECV_Editor.File_Formats;
+﻿using RECV_Editor.File_Formats;
 using System;
-using System.Diagnostics;
 using System.IO;
-#if MULTITHREADING
-using System.Threading.Tasks;
-#endif
-using System.Windows.Forms;
 
 namespace RECV_Editor
 {
@@ -29,43 +22,8 @@ namespace RECV_Editor
         protected override int MaxExtractionProgressSteps => 4;
         protected override int MaxInsertionProgressSteps => 5;
 
-        public override void ExtractAll(string inputFolder, string outputFolder, string tablesFolder, int language, IProgress<ProgressInfo> progress)
+        protected override void ExtractDisc(string discInputFolder, string discOutputFolder, Table table, int language, int disc, IProgress<ProgressInfo> progress, ref int currentProgress)
         {
-            if (string.IsNullOrEmpty(inputFolder))
-            {
-                throw new ArgumentNullException(nameof(inputFolder));
-            }
-
-            inputFolder = Path.Combine(inputFolder, Platform.ToString());
-
-            if (!Directory.Exists(inputFolder))
-            {
-                throw new DirectoryNotFoundException($"Directory \"{inputFolder}\" does not exist!");
-            }
-
-            if (string.IsNullOrEmpty(outputFolder))
-            {
-                throw new ArgumentNullException(nameof(outputFolder));
-            }
-
-            outputFolder = Path.Combine(outputFolder, Platform.ToString());
-
-            if (string.IsNullOrEmpty(tablesFolder))
-            {
-                throw new ArgumentNullException(nameof(tablesFolder));
-            }
-
-            Table table = GetTableFromLanguage(tablesFolder, language);
-
-            // Begin process
-
-            Stopwatch sw = new Stopwatch();
-            sw.Start();
-
-            int currentProgressValue = 0;
-
-            Logger.Append("Extract all process has begun. ---------------------------------------------------------------------");
-
             // Generate some paths based on selected language
 
             string languageCode = languageCodes[language];
@@ -73,7 +31,7 @@ namespace RECV_Editor
 
             // Create output <languageCode> folder
 
-            string outputLanguageFolder = Path.Combine(outputFolder, languageCode);
+            string outputLanguageFolder = Path.Combine(discOutputFolder, languageCode);
             if (!Directory.Exists(outputLanguageFolder))
             {
                 Logger.Append($"Creating \"{outputLanguageFolder}\" folder...");
@@ -83,10 +41,10 @@ namespace RECV_Editor
             // Extract SYSMES
 
             {
-                string sysmesInputFolder = Path.Combine(inputFolder, languageCode);
+                string sysmesInputFolder = Path.Combine(discInputFolder, languageCode);
                 string sysmesFileName = $"SYSMES{languageIndex}.ALD";
-                string sysmesOutputFolder = Path.ChangeExtension(Path.Combine(outputFolder, languageCode, sysmesFileName), null);
-                ExtractSysmes(sysmesInputFolder, sysmesFileName, sysmesOutputFolder, table, progress, ref currentProgressValue, MaxExtractionProgressSteps * DiscCount);
+                string sysmesOutputFolder = Path.ChangeExtension(Path.Combine(discOutputFolder, languageCode, sysmesFileName), null);
+                ExtractSysmes(sysmesInputFolder, sysmesFileName, sysmesOutputFolder, table, progress, ref currentProgress, MaxExtractionProgressSteps * DiscCount);
             }
 
             // Extract AFS files
@@ -94,10 +52,10 @@ namespace RECV_Editor
             string rdxLnkOutputFolder;
 
             {
-                string rdxLnkInputFolder = Path.Combine(inputFolder, languageCode);
+                string rdxLnkInputFolder = Path.Combine(discInputFolder, languageCode);
                 string rdxLnkFileName = $"RDX_LNK{languageIndex}.AFS";
-                rdxLnkOutputFolder = Path.ChangeExtension(Path.Combine(outputFolder, languageCode, rdxLnkFileName), null);
-                ExtractRdxLnk(rdxLnkInputFolder, rdxLnkFileName, rdxLnkOutputFolder, 1, progress, ref currentProgressValue, MaxExtractionProgressSteps * DiscCount);
+                rdxLnkOutputFolder = Path.ChangeExtension(Path.Combine(discOutputFolder, languageCode, rdxLnkFileName), null);
+                ExtractAfs(Path.Combine(rdxLnkInputFolder, rdxLnkFileName), rdxLnkOutputFolder, 1, progress, ref currentProgress, MaxExtractionProgressSteps * DiscCount);
             }
 
             // Rename PS2 RDX files for convenience
@@ -114,44 +72,7 @@ namespace RECV_Editor
 
             // Decompress files in RDX_LNK1
 
-            RDX rdx = RDX.GetRDX(Platform);
-
-            currentProgressValue++;
-            int currentRdxFile = 1;
-
-#if MULTITHREADING
-            Parallel.For(0, rdxFiles.Length, (f) =>
-            {
-#else
-            for (int f = 0; f < rdxFiles.Length; f++)
-            {
-#endif
-                Logger.Append($"Extracting RDX file \"{rdxFiles[f]}\"...");
-                progress?.Report(new ProgressInfo($"Extracting RDX files... ({currentRdxFile++}/{rdxFiles.Length})", currentProgressValue, MaxExtractionProgressSteps * DiscCount));
-
-                byte[] rdxData = File.ReadAllBytes(rdxFiles[f]);
-                byte[] rdxUncompressedData = PRS.Decompress(rdxData);
-                //File.WriteAllBytes(rdxFiles[f] + ".unc", rdxUncompressedData);
-
-                File.Delete(rdxFiles[f]);
-
-                RDX.Results result = rdx.Extract(rdxUncompressedData, Path.GetFileName(rdxFiles[f]), rdxFiles[f] + RDX_EXTRACTED_FOLDER_SUFFIX, language, table);
-                if (result == RDX.Results.NotValidRdxFile) Logger.Append($"\"{rdxFiles[f]}\" is not a valid RDX file. Ignoring.", Logger.LogTypes.Warning);
-#if MULTITHREADING
-            });
-#else
-            }
-#endif
-
-            // Finish process
-
-            progress?.Report(new ProgressInfo("Done!", ++currentProgressValue, MaxExtractionProgressSteps * DiscCount));
-            Logger.Append("Extract all process has finished. ------------------------------------------------------------------");
-
-            GC.Collect();
-
-            sw.Stop();
-            MessageBox.Show($"The process has finished successfully in {sw.Elapsed.TotalSeconds} seconds.", "Success!", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            ExtractRdxFiles(rdxFiles, language, disc, table, progress, ref currentProgress);
         }
 
         protected override void InsertDisc(string discInputFolder, string discOutputFolder, string discOriginalDataFolder, Table table, int language, int disc, IProgress<ProgressInfo> progress, ref int currentProgress)
@@ -196,7 +117,7 @@ namespace RECV_Editor
 
             // Extract original RDX_LNK1 file
 
-            ExtractRdxLnk(discOriginalDataFolder, RDX_LNK_AFS_Path, output_RDX_LNK_folder, disc, progress, ref currentProgress, MaxInsertionProgressSteps);
+            ExtractAfs(Path.Combine(discOriginalDataFolder, RDX_LNK_AFS_Path), output_RDX_LNK_folder, disc, progress, ref currentProgress, MaxInsertionProgressSteps);
 
             // Rename PS2 RDX files for convenience
 
