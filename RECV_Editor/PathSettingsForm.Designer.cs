@@ -38,8 +38,8 @@ namespace RECV_Editor
             this.GeneratedGamePathBrowseButton = new System.Windows.Forms.Button();
             this.GeneratedGamePathTextBox = new System.Windows.Forms.TextBox();
             this.GeneratedGamePathLabel = new System.Windows.Forms.Label();
-            this.CancelButton = new System.Windows.Forms.Button();
-            this.OkButton = new System.Windows.Forms.Button();
+            this.MainCancelButton = new System.Windows.Forms.Button();
+            this.MainOkButton = new System.Windows.Forms.Button();
             this.TablesPathBrowseButton = new System.Windows.Forms.Button();
             this.TablesPathTextBox = new System.Windows.Forms.TextBox();
             this.TablesPathLabel = new System.Windows.Forms.Label();
@@ -132,27 +132,27 @@ namespace RECV_Editor
             this.GeneratedGamePathLabel.TabIndex = 6;
             this.GeneratedGamePathLabel.Text = "Generated Game Path:";
             // 
-            // CancelButton
+            // MainCancelButton
             // 
-            this.CancelButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
-            this.CancelButton.Location = new System.Drawing.Point(217, 201);
-            this.CancelButton.Name = "CancelButton";
-            this.CancelButton.Size = new System.Drawing.Size(110, 32);
-            this.CancelButton.TabIndex = 12;
-            this.CancelButton.Text = "Cancel";
-            this.CancelButton.UseVisualStyleBackColor = true;
-            this.CancelButton.Click += new System.EventHandler(this.CancelButton_Click);
+            this.MainCancelButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
+            this.MainCancelButton.Location = new System.Drawing.Point(217, 201);
+            this.MainCancelButton.Name = "MainCancelButton";
+            this.MainCancelButton.Size = new System.Drawing.Size(110, 32);
+            this.MainCancelButton.TabIndex = 12;
+            this.MainCancelButton.Text = "Cancel";
+            this.MainCancelButton.UseVisualStyleBackColor = true;
+            this.MainCancelButton.Click += new System.EventHandler(this.CancelButton_Click);
             // 
-            // OkButton
+            // MainOkButton
             // 
-            this.OkButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
-            this.OkButton.Location = new System.Drawing.Point(333, 201);
-            this.OkButton.Name = "OkButton";
-            this.OkButton.Size = new System.Drawing.Size(110, 32);
-            this.OkButton.TabIndex = 13;
-            this.OkButton.Text = "Ok";
-            this.OkButton.UseVisualStyleBackColor = true;
-            this.OkButton.Click += new System.EventHandler(this.OkButton_Click);
+            this.MainOkButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
+            this.MainOkButton.Location = new System.Drawing.Point(333, 201);
+            this.MainOkButton.Name = "MainOkButton";
+            this.MainOkButton.Size = new System.Drawing.Size(110, 32);
+            this.MainOkButton.TabIndex = 13;
+            this.MainOkButton.Text = "Ok";
+            this.MainOkButton.UseVisualStyleBackColor = true;
+            this.MainOkButton.Click += new System.EventHandler(this.OkButton_Click);
             // 
             // TablesPathBrowseButton
             // 
@@ -183,7 +183,7 @@ namespace RECV_Editor
             this.TablesPathLabel.TabIndex = 9;
             this.TablesPathLabel.Text = "Tables Path:";
             // 
-            // PathSettings
+            // PathSettingsForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
@@ -191,8 +191,8 @@ namespace RECV_Editor
             this.Controls.Add(this.TablesPathBrowseButton);
             this.Controls.Add(this.TablesPathTextBox);
             this.Controls.Add(this.TablesPathLabel);
-            this.Controls.Add(this.OkButton);
-            this.Controls.Add(this.CancelButton);
+            this.Controls.Add(this.MainOkButton);
+            this.Controls.Add(this.MainCancelButton);
             this.Controls.Add(this.GeneratedGamePathBrowseButton);
             this.Controls.Add(this.GeneratedGamePathTextBox);
             this.Controls.Add(this.GeneratedGamePathLabel);
@@ -206,7 +206,7 @@ namespace RECV_Editor
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedDialog;
             this.MaximizeBox = false;
             this.MinimizeBox = false;
-            this.Name = "PathSettings";
+            this.Name = "PathSettingsForm";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
             this.Text = "Change Project Paths";
             this.Load += new System.EventHandler(this.PathSettings_Load);
@@ -226,8 +226,8 @@ namespace RECV_Editor
         private System.Windows.Forms.Button GeneratedGamePathBrowseButton;
         private System.Windows.Forms.TextBox GeneratedGamePathTextBox;
         private System.Windows.Forms.Label GeneratedGamePathLabel;
-        private System.Windows.Forms.Button CancelButton;
-        private System.Windows.Forms.Button OkButton;
+        private System.Windows.Forms.Button MainCancelButton;
+        private System.Windows.Forms.Button MainOkButton;
         private System.Windows.Forms.Button TablesPathBrowseButton;
         private System.Windows.Forms.TextBox TablesPathTextBox;
         private System.Windows.Forms.Label TablesPathLabel;
