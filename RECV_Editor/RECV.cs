@@ -2,8 +2,10 @@
 using PSO.PRS;
 using RECV_Editor.File_Formats;
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Threading.Tasks;
+using System.Windows.Forms;
 
 namespace RECV_Editor
 {
@@ -31,8 +33,12 @@ namespace RECV_Editor
         protected abstract string[] LanguageCodes { get; }
         protected abstract int[] LanguageIndices { get; }
 
+        protected abstract Platforms Platform { get; }
         protected abstract int DiscCount { get; }
         protected abstract bool IsBigEndian { get; }
+
+        protected abstract int MaxExtractionProgressSteps { get; }
+        protected abstract int MaxInsertionProgressSteps { get; }
 
         public const string JPN_LANGUAGE_CODE = "JPN";
         public const string USA_LANGUAGE_CODE = "USA";
@@ -53,7 +59,85 @@ namespace RECV_Editor
         protected const string RDX_EXTRACTED_FOLDER_SUFFIX = "_extract";
 
         public abstract void ExtractAll(string inputFolder, string outputFolder, string tablesFolder, int language, IProgress<ProgressInfo> progress);
-        public abstract void InsertAll(string inputFolder, string outputFolder, string originalDataFolder, string tablesFolder, int language, IProgress<ProgressInfo> progress);
+
+        protected abstract void InsertDisc(string inputFolder, string outputFolder, string originalDataFolder, Table table, int language, int disc, IProgress<ProgressInfo> progress, ref int currentProgress);
+
+        public void InsertAll(string inputFolder, string outputFolder, string originalDataFolder, string tablesFolder, int language, IProgress<ProgressInfo> progress)
+        {
+            if (string.IsNullOrEmpty(inputFolder))
+            {
+                throw new ArgumentNullException(nameof(inputFolder));
+            }
+
+            if (!Directory.Exists(inputFolder))
+            {
+                throw new DirectoryNotFoundException($"Directory \"{inputFolder}\" does not exist!");
+            }
+
+            if (string.IsNullOrEmpty(outputFolder))
+            {
+                throw new ArgumentNullException(nameof(outputFolder));
+            }
+
+            if (string.IsNullOrEmpty(originalDataFolder))
+            {
+                throw new ArgumentNullException(nameof(originalDataFolder));
+            }
+
+            if (!Directory.Exists(originalDataFolder))
+            {
+                throw new DirectoryNotFoundException($"Directory \"{originalDataFolder}\" does not exist!");
+            }
+
+            if (string.IsNullOrEmpty(tablesFolder))
+            {
+                throw new ArgumentNullException(nameof(tablesFolder));
+            }
+
+            Table table = GetTableFromLanguage(tablesFolder, language);
+
+            // Begin process
+
+            Stopwatch sw = new Stopwatch();
+            sw.Start();
+
+            int currentProgress = 0;
+
+            Logger.Append("Insert all process has begun. ----------------------------------------------------------------------");
+
+            for (int disc = 1; disc < DiscCount + 1; disc++)
+            {
+                string discFolderName = DiscCount > 1 ? $"Disc {disc}" : string.Empty;
+                string discInputFolder = Path.Combine(inputFolder, Platform.ToString(), discFolderName);
+
+                if (!Directory.Exists(discInputFolder))
+                {
+                    throw new DirectoryNotFoundException($"Directory \"{discInputFolder}\" does not exist!");
+                }
+
+                string discOutputFolder = Path.Combine(outputFolder, Platform.ToString(), discFolderName);
+
+                string discOriginalDataFolder = Path.Combine(originalDataFolder, Platform.ToString(), discFolderName);
+
+                if (!Directory.Exists(discOriginalDataFolder))
+                {
+                    throw new DirectoryNotFoundException($"Directory \"{discOriginalDataFolder}\" does not exist!");
+                }
+
+                InsertDisc(discInputFolder, discOutputFolder, discOriginalDataFolder, table, language, disc, progress, ref currentProgress);
+            }
+
+            // Finish process
+
+            progress?.Report(new ProgressInfo("Done!", ++currentProgress, MaxInsertionProgressSteps));
+            Logger.Append("Insert all process has finished. -------------------------------------------------------------------");
+
+            GC.Collect();
+
+            sw.Stop();
+            MessageBox.Show($"The process has finished successfully in {sw.Elapsed.TotalSeconds} seconds.", "Success!", MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
+
 
         public Table GetTableFromLanguage(string tablesFolder, int languageIndex)
         {
@@ -99,7 +183,7 @@ namespace RECV_Editor
             ALD.Extract(sysmesPath, outputFolder, table, IsBigEndian);
         }
 
-        protected void ExtractRdxLnk(string rdxLnkFolder, string rdxLinkFileName, string outputFolder, IProgress<ProgressInfo> progress, ref int currentProgressValue, int maxProgressSteps)
+        protected void ExtractRdxLnk(string rdxLnkFolder, string rdxLinkFileName, string outputFolder, int disc, IProgress<ProgressInfo> progress, ref int currentProgressValue, int maxProgressSteps)
         {
             string rdxLnkPath = Path.Combine(rdxLnkFolder, rdxLinkFileName);
 
@@ -109,7 +193,7 @@ namespace RECV_Editor
             }
 
             Logger.Append($"Extracting \"{rdxLnkPath}\"...");
-            progress?.Report(new ProgressInfo($"Extracting \"{rdxLinkFileName}\"...", ++currentProgressValue, maxProgressSteps));
+            progress?.Report(new ProgressInfo($"Extracting \"{rdxLinkFileName}\" (Disc {disc})...", ++currentProgressValue, maxProgressSteps));
 
             using (AFS afs = new AFS(rdxLnkPath))
             {
@@ -123,7 +207,7 @@ namespace RECV_Editor
 
         #region Insertion Methods
 
-        protected void InsertRdxFiles(string inputRdxLnkFolder, string[] outputRdxFiles, int language, Table table, Platforms platform, IProgress<ProgressInfo> progress, ref int currentProgressValue, int maxProgressSteps)
+        protected void InsertRdxFiles(string inputRdxLnkFolder, string[] outputRdxFiles, int language, int disc, Table table, Platforms platform, IProgress<ProgressInfo> progress, ref int currentProgressValue, int maxProgressSteps)
         {
             if (!Directory.Exists(inputRdxLnkFolder))
             {
@@ -146,7 +230,7 @@ namespace RECV_Editor
             {
                 string inputRdxPath = Path.Combine(inputRdxLnkFolder, Path.GetFileName(outputRdxFiles[r]) + RDX_EXTRACTED_FOLDER_SUFFIX);
 
-                progress?.Report(new ProgressInfo($"Inserting RDX files... ({currentRdxFile++}/{outputRdxFiles.Length})", currentProgress, maxProgressSteps));
+                progress?.Report(new ProgressInfo($"Inserting RDX files (Disc {disc})... ({currentRdxFile++}/{outputRdxFiles.Length})", currentProgress, maxProgressSteps));
 
                 if (!Directory.Exists(inputRdxPath))
                 {
@@ -181,6 +265,30 @@ namespace RECV_Editor
 #else
             }
 #endif
+        }
+
+        protected void GenerateAfs(string inputDirectory, string outputAfsFile, IProgress<ProgressInfo> progress, ref int currentProgress)
+        {
+            Logger.Append($"Generating \"{outputAfsFile}\"...");
+            progress?.Report(new ProgressInfo($"Generating \"{outputAfsFile}\"...", ++currentProgress, MaxInsertionProgressSteps));
+
+            string[] rdxFiles = Directory.GetFiles(inputDirectory);
+
+            using (AFS afs = new AFS())
+            {
+                afs.AttributesInfoType = AttributesInfoType.NoAttributes;
+                afs.NotifyProgress += AFS_NotifyProgress;
+
+                for (int f = 0; f < rdxFiles.Length; f++)
+                {
+                    afs.AddEntryFromFile(rdxFiles[f]);
+                }
+
+                afs.SaveToFile(outputAfsFile);
+                afs.NotifyProgress -= AFS_NotifyProgress;
+            }
+
+            Directory.Delete(inputDirectory, true);
         }
 
         #endregion
