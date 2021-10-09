@@ -206,7 +206,6 @@ namespace RECV_Editor
 
                 string languageCode = languageCodes[language];
                 int languageIndex = languageIndices[language];
-                string outputLanguageFolder = Path.Combine(discOutputFolder, languageCode);
                 string SYSMES_ALD_Path = $"sysmes{languageIndex}.ald";
                 string RDX_LNK_AFS_Path = $"rdx_lnk{disc}.afs";
 
@@ -217,18 +216,18 @@ namespace RECV_Editor
 
                 // Delete existing output folder if it exists
 
-                if (Directory.Exists(outputLanguageFolder))
+                if (Directory.Exists(discOutputFolder))
                 {
-                    Logger.Append($"Deleting \"{outputLanguageFolder}\" folder...");
-                    Directory.Delete(outputLanguageFolder, true);
+                    Logger.Append($"Deleting \"{discOutputFolder}\" folder...");
+                    Directory.Delete(discOutputFolder, true);
                 }
 
                 // Create output folder
 
-                if (!Directory.Exists(outputLanguageFolder))
+                if (!Directory.Exists(discOutputFolder))
                 {
-                    Logger.Append($"Creating \"{outputLanguageFolder}\" folder...");
-                    Directory.CreateDirectory(outputLanguageFolder);
+                    Logger.Append($"Creating \"{discOutputFolder}\" folder...");
+                    Directory.CreateDirectory(discOutputFolder);
                 }
 
                 // Generate SYSMES1.ALD
