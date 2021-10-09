@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Text;
 
@@ -167,24 +168,16 @@ namespace RECV_Editor.File_Formats
                 // Get the texts subBlock corresponding to the selected language
 
                 int rdxLanguageIndex = GetRDXLanguageIndex(language);
-                uint textSubBlockPosition = subBlockPositions[languageSubBlockIndices[rdxLanguageIndex]];
+                uint textsSubBlockPosition = subBlockPositions[languageSubBlockIndices[rdxLanguageIndex]];
 
                 // Check if the texts subBlock is null, and do stuff if not null
 
-                if (textSubBlockPosition != 0)
+                if (textsSubBlockPosition != 0)
                 {
                     // Find the next non-null subBlock to calculate the texts subBlock size
 
-                    uint nextSubBlockPosition = unk1DataBlockPosition;
-
-                    for (uint sb = 0; sb < TEXT_DATA_BLOCK_SUBBLOCK_COUNT; sb++)
-                    {
-                        if (subBlockPositions[sb] == 0) continue;
-                        if (subBlockPositions[sb] <= textSubBlockPosition) continue;
-                        if (subBlockPositions[sb] < nextSubBlockPosition) nextSubBlockPosition = subBlockPositions[sb];
-                    }
-
-                    uint textsSubBlockSize = nextSubBlockPosition - textSubBlockPosition;
+                    uint nextSubBlockPosition = GetNextSubBlockPosition(textsSubBlockPosition, subBlockPositions, unk1DataBlockPosition);
+                    uint textsSubBlockSize = nextSubBlockPosition - textsSubBlockPosition;
 
                     string texts = File.ReadAllText(Path.Combine(inputFolder, string.Format(STRINGS_FILE_NAME, rdxFileName, RECV_GameCube.GetLanguageCode(language))));
 
@@ -195,60 +188,74 @@ namespace RECV_Editor.File_Formats
                         if (textsStream.Length > textsSubBlockSize)
                         {
                             // If the new textsBlock is bigger than the old one,
-                            // place it just where the textureDataBlock is and move the textureDataBlock after the texts.
-                            // The reasons for this are explained in RDX_PS2. I don't know if the same applies to GameCube,
-                            // but let's be safe, and also keep the code consistent.
+                            // delete the japanese language, and reorder the other ones so the current language
+                            // is the last one. All remaining space will be for the current language.
 
+                            // Copy all subBlock data consecutively from subBlock 14 to 20, except the current language and Japanese
 
-                            // TODO: Redo this -----------------------------------------------------------------------------
+                            byte[][] subBlocksData = new byte[TEXT_DATA_BLOCK_SUBBLOCK_COUNT][];
 
-                            // Delete previous sub subBlock 14 and 15 data
+                            for (uint sb = 14; sb < TEXT_DATA_BLOCK_SUBBLOCK_COUNT; sb++)
+                            {
+                                if (sb == languageSubBlockIndices[rdxLanguageIndex]) continue; // Ignore current language
+                                if (sb == 20) continue; // Ignore japanese
 
-                            rdxStream.Position = subBlockPositions[14];
-                            for (int b = 0; b < textsSubBlockSize; b++) rdxStream.WriteByte(0);
+                                uint subBlockSize = GetSubBlockSize(subBlockPositions[sb], subBlockPositions, unk1DataBlockPosition);
+                                byte[] data = new byte[subBlockSize];
+                                rdxStream.Position = subBlockPositions[sb];
+                                rdxStream.Read(data, 0, data.Length);
 
-                            // Copy the whole texture block
+                                subBlocksData[sb] = data;
+                            }
 
-                            byte[] textureData = new byte[rdxStream.Length - textureDataBlockPosition];
-                            rdxStream.Position = textureDataBlockPosition;
-                            rdxStream.Read(textureData, 0, textureData.Length);
+                            // Write the subBlocks again except current language and japanese
 
-                            // Update texts block pointer
+                            uint currentPointerPosition = textDataBlockPosition + (4 * 14);
+                            uint currentDataPosition = subBlockPositions[14];
 
-                            rdxStream.Position = textDataBlockPosition + (4 * 14);
-                            bw.WriteEndian(textureDataBlockPosition, IsBigEndian);
+                            for (uint sb = 14; sb < TEXT_DATA_BLOCK_SUBBLOCK_COUNT; sb++)
+                            {
+                                if (subBlocksData[sb] != null)
+                                {
+                                    rdxStream.Position = currentPointerPosition;
+                                    bw.WriteEndian(currentDataPosition, IsBigEndian);
 
-                            // Copy texts data to texture block area
+                                    rdxStream.Position = currentDataPosition;
+                                    rdxStream.Write(subBlocksData[sb], 0, subBlocksData[sb].Length);
+                                    currentDataPosition += (uint)subBlocksData[sb].Length;
+                                }
 
-                            rdxStream.Position = textureDataBlockPosition;
+                                currentPointerPosition += 4;
+                            }
+
+                            // Now we've left all the remaining space for the current language texts.
+
+                            // First check if texts will now fit in this new space.
+
+                            if (textsStream.Length > unk1DataBlockPosition - currentDataPosition)
+                            {
+                                throw new InvalidDataException($"Texts in {rdxFileName} are {textsStream.Length} bytes, but there's {unk1DataBlockPosition - currentPointerPosition} bytes available.");
+                            }
+
+                            // Modify the current language pointer, and also the japanese pointer
+                            // so it points to current language (japanese doesn't exist anymore).
+
+                            rdxStream.Position = textDataBlockPosition + (4 * languageSubBlockIndices[rdxLanguageIndex]);
+                            bw.WriteEndian(currentDataPosition, IsBigEndian);
+
+                            rdxStream.Position = textDataBlockPosition + (4 * 20);
+                            bw.WriteEndian(currentDataPosition, IsBigEndian);
+
+                            // Copy texts data to new position
+
+                            rdxStream.Position = currentDataPosition;
                             textsStream.Position = 0;
                             textsStream.CopyTo(rdxStream);
 
-                            // Place the texture block after the new texts block
+                            // Fill remaining bytes with zeroes
 
-                            uint previousTextureDataBlockPosition = textureDataBlockPosition;
-                            textureDataBlockPosition = Utils.Padding((uint)rdxStream.Position, 16);
-                            rdxStream.Position = textureDataBlockPosition;
-                            rdxStream.Write(textureData, 0, textureData.Length);
-
-                            // Update texture block pointer
-
-                            rdxStream.Position = 0x20;
-                            bw.WriteEndian(textureDataBlockPosition, IsBigEndian);
-
-                            // Change all absolute pointers in the texture block
-
-                            rdxStream.Position = textureDataBlockPosition;
-
-                            uint textureCount = br.ReadUInt32Endian(IsBigEndian);
-
-                            for (int tp = 0; tp < textureCount; tp++)
-                            {
-                                uint pointer = br.ReadUInt32Endian(IsBigEndian);
-                                pointer += textureDataBlockPosition - previousTextureDataBlockPosition;
-                                rdxStream.Position -= 4;
-                                bw.WriteEndian(pointer, IsBigEndian);
-                            }
+                            int remainingBytes = (int)(unk1DataBlockPosition - rdxStream.Position);
+                            for (int b = 0; b < remainingBytes; b++) rdxStream.WriteByte(0);
                         }
                         else
                         {
@@ -256,7 +263,7 @@ namespace RECV_Editor.File_Formats
 
                             // Copy texts data
 
-                            rdxStream.Position = textSubBlockPosition;
+                            rdxStream.Position = textsSubBlockPosition;
                             textsStream.Position = 0;
                             textsStream.CopyTo(rdxStream);
 
@@ -309,6 +316,25 @@ namespace RECV_Editor.File_Formats
                 case 6: return 3;  // Italian
                 default: throw new IndexOutOfRangeException($"Language with index {language} is not implemented.");
             }
+        }
+
+        uint GetNextSubBlockPosition(uint subBlockPosition, uint[] subBlockPositions, uint blockEndPosition)
+        {
+            uint nextSubBlockPosition = blockEndPosition;
+
+            for (uint sb = 0; sb < TEXT_DATA_BLOCK_SUBBLOCK_COUNT; sb++)
+            {
+                if (subBlockPositions[sb] == 0) continue;
+                if (subBlockPositions[sb] <= subBlockPosition) continue;
+                if (subBlockPositions[sb] < nextSubBlockPosition) nextSubBlockPosition = subBlockPositions[sb];
+            }
+
+            return nextSubBlockPosition;
+        }
+
+        uint GetSubBlockSize(uint subBlockPosition, uint[] subBlockPositions, uint blockEndPosition)
+        {
+            return GetNextSubBlockPosition(subBlockPosition, subBlockPositions, blockEndPosition) - subBlockPosition;
         }
     }
 }

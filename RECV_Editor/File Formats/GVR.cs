@@ -235,7 +235,85 @@ namespace RECV_Editor.File_Formats
 
         public static void Insert(string inputFolder, Stream gvrStream)
         {
+            if (string.IsNullOrEmpty(inputFolder))
+            {
+                throw new ArgumentNullException(nameof(inputFolder));
+            }
 
+            if (!Directory.Exists(inputFolder))
+            {
+                throw new DirectoryNotFoundException($"Directory \"{inputFolder}\" does not exist!");
+            }
+
+            if (gvrStream == null)
+            {
+                throw new ArgumentNullException(nameof(gvrStream));
+            }
+
+            string metadataFileName = Path.Combine(inputFolder, METADATA_FILENAME);
+            GVR_Metadata metadata = JsonConvert.DeserializeObject<GVR_Metadata>(File.ReadAllText(metadataFileName));
+
+            using (BinaryReader br = new BinaryReader(gvrStream, Encoding.UTF8, true))
+            using (BinaryWriter bw = new BinaryWriter(gvrStream, Encoding.UTF8, true))
+            {
+                for (int e = 0; e < metadata.Entries.Count; e++)
+                {
+                    GVR_Entry entry = metadata.Entries[e];
+
+                    long entryStartPosition = gvrStream.Position;
+
+                    for (int c = 0; c < entry.Chunks.Count; c++)
+                    {
+                        byte[] data;
+
+                        switch (entry.Chunks[c].ChunkType)
+                        {
+                            case TPVR_NAME:
+                            case PPVP_NAME:
+                            case PPVR_NAME:
+                            {
+                                data = Convert.FromBase64String(entry.Chunks[c].ChunkData);
+
+                                break;
+                            }
+
+                            case GVPL_NAME:
+                            {
+                                string gvplFileName = Path.Combine(inputFolder, entry.Chunks[c].ChunkData);
+                                data = File.ReadAllBytes(gvplFileName);
+                                Array.Resize(ref data, data.Length + 16);
+
+                                break;
+                            }
+
+                            case GCIX_GVRT_NAME:
+                            {
+                                string gcixFileName = Path.Combine(inputFolder, entry.Chunks[c].ChunkData);
+                                data = File.ReadAllBytes(gcixFileName);
+
+                                break;
+                            }
+
+                            default:
+                            {
+                                throw new InvalidDataException($"Invalid header data found in \"{metadataFileName}\".");
+                            }
+                        }
+
+                        gvrStream.Write(data, 0, data.Length);
+                    }
+
+                    uint entrySize = (uint)(gvrStream.Position - entryStartPosition);
+                    if (entrySize != entry.EntrySize)
+                    {
+                        throw new InvalidDataException($"Entry with index {e} in \"{metadataFileName}\" is expected to be {entry.EntrySize} bytes but it is {entrySize} bytes.");
+                    }
+
+                }
+
+                byte[] finalChunkData = Convert.FromBase64String(metadata.FinalChunk);
+                gvrStream.Write(finalChunkData, 0, finalChunkData.Length);
+            }
         }
     }
 }

@@ -1,4 +1,5 @@
-﻿using PSO.PRS;
+﻿using AFSLib;
+using PSO.PRS;
 using RECV_Editor.File_Formats;
 using System;
 using System.Diagnostics;
@@ -24,7 +25,7 @@ namespace RECV_Editor
 
         // TODO: Move to RECV?
         const int MAX_EXTRACTION_PROGRESS_STEPS = 7;
-        const int MAX_INSERTION_PROGRESS_STEPS = 5;
+        const int MAX_INSERTION_PROGRESS_STEPS = 9;
 
         public override void ExtractAll(string inputFolder, string outputFolder, string tablesFolder, int language, IProgress<ProgressInfo> progress)
         {
@@ -248,24 +249,41 @@ namespace RECV_Editor
 
                 InsertRdxFiles(input_RDX_LNK_folder, outputRdxFiles, language, table, Platforms.GameCube, progress, ref currentProgressValue, MAX_INSERTION_PROGRESS_STEPS);
 
+                // Insert RDX files into new RDX_LNK1 file
 
+                Logger.Append($"Generating \"{output_RDX_LNK}\"...");
+                progress?.Report(new ProgressInfo($"Generating \"{output_RDX_LNK}\"...", ++currentProgressValue, MAX_INSERTION_PROGRESS_STEPS));
 
+                string[] rdxFiles = Directory.GetFiles(output_RDX_LNK_folder);
 
+                using (AFS afs = new AFS())
+                {
+                    afs.AttributesInfoType = AttributesInfoType.NoAttributes;
+                    afs.NotifyProgress += AFS_NotifyProgress;
 
+                    for (int f = 0; f < rdxFiles.Length; f++)
+                    {
+                        afs.AddEntryFromFile(rdxFiles[f]);
+                    }
 
+                    afs.SaveToFile(output_RDX_LNK);
+                    afs.NotifyProgress -= AFS_NotifyProgress;
+                }
 
-
-
-                // Finish process
-
-                progress?.Report(new ProgressInfo("Done!", ++currentProgressValue, MAX_INSERTION_PROGRESS_STEPS));
-                Logger.Append("Insert all process has finished. -------------------------------------------------------------------");
-
-                GC.Collect();
-
-                sw.Stop();
-                MessageBox.Show($"The process has finished successfully in {sw.Elapsed.TotalSeconds} seconds.", "Success!", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                Directory.Delete(output_RDX_LNK_folder, true);
             }
+
+
+            // Finish process
+
+            progress?.Report(new ProgressInfo("Done!", ++currentProgressValue, MAX_INSERTION_PROGRESS_STEPS));
+            Logger.Append("Insert all process has finished. -------------------------------------------------------------------");
+
+            GC.Collect();
+
+            sw.Stop();
+            MessageBox.Show($"The process has finished successfully in {sw.Elapsed.TotalSeconds} seconds.", "Success!", MessageBoxButtons.OK, MessageBoxIcon.Information);
+
         }
 
         public static string GetLanguageCode(int language)
