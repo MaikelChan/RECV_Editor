@@ -199,6 +199,14 @@ namespace RECV_Editor.File_Formats
                             {
                                 if (sb == languageSubBlockIndices[rdxLanguageIndex]) continue; // Ignore current language
                                 if (sb == 20) continue; // Ignore japanese
+                                if (subBlockPositions[sb] == 0)
+                                {
+                                    // Sometimes subBlock 15 is null, so ignore it.
+                                    if (sb == 15) continue;
+
+                                    // But if a language pointer is null, that's unexpected.
+                                    throw new InvalidDataException($"Unexpected null pointer to language subBlock with index {sb} in file \"{rdxFileName}\".");
+                                }
 
                                 uint subBlockSize = GetSubBlockSize(subBlockPositions[sb], subBlockPositions, unk1DataBlockPosition);
                                 byte[] data = new byte[subBlockSize];
