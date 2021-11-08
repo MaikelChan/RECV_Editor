@@ -49,10 +49,17 @@ namespace RECV_Editor
             // Extract SYSMES
 
             {
-                string sysmesInputFolder = discInputFolder;
                 string sysmesFileName = $"sysmes{languageIndexString}.ald";
                 string sysmesOutputFolder = Path.ChangeExtension(Path.Combine(discOutputFolder, languageCode, sysmesFileName), null);
-                ExtractSysmes(sysmesInputFolder, sysmesFileName, sysmesOutputFolder, table, progress, ref currentProgress, MaxExtractionProgressSteps);
+                ExtractSysmes(discInputFolder, sysmesFileName, sysmesOutputFolder, table, progress, ref currentProgress, MaxExtractionProgressSteps);
+            }
+
+            // Extract SYSEFF
+
+            {
+                string syseffFileName = $"syseff{languageIndexString}.ald";
+                string syseffOutputFolder = Path.ChangeExtension(Path.Combine(discOutputFolder, languageCode, syseffFileName), null);
+                ExtractSyseff(discInputFolder, syseffFileName, syseffOutputFolder, table, progress, ref currentProgress, MaxExtractionProgressSteps);
             }
 
             // Extract AFS files

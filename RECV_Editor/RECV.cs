@@ -230,10 +230,75 @@ namespace RECV_Editor
                 throw new FileNotFoundException($"File \"{sysmesPath}\" does not exist!", sysmesPath);
             }
 
+            if (string.IsNullOrEmpty(outputFolder))
+            {
+                throw new ArgumentNullException(nameof(outputFolder));
+            }
+
+            if (table == null)
+            {
+                throw new ArgumentNullException(nameof(table));
+            }
+
+            if (!Directory.Exists(outputFolder)) Directory.CreateDirectory(outputFolder);
+
             Logger.Append($"Extracting \"{sysmesPath}\"...");
             progress?.Report(new ProgressInfo($"Extracting \"{sysmesFileName}\"...", ++currentProgressValue, maxProgressSteps));
 
-            ALD.Extract(sysmesPath, outputFolder, table, IsBigEndian);
+            ALD.Extract(sysmesPath, IsBigEndian, (blockStream, blockIndex, blockSize) =>
+            {
+                string texts = Texts.Extract(blockStream, table, IsBigEndian);
+
+                // Write all the texts in the block to a txt file
+                string outputFile = Path.Combine(outputFolder, $"{blockIndex:00}.txt");
+                File.WriteAllText(outputFile, texts);
+            });
+        }
+
+        protected void ExtractSyseff(string syseffFolder, string syseffFileName, string outputFolder, Table table, IProgress<ProgressInfo> progress, ref int currentProgressValue, int maxProgressSteps)
+        {
+            string syseffPath = Path.Combine(syseffFolder, syseffFileName);
+
+            if (!File.Exists(syseffPath))
+            {
+                throw new FileNotFoundException($"File \"{syseffPath}\" does not exist!", syseffPath);
+            }
+
+            if (string.IsNullOrEmpty(outputFolder))
+            {
+                throw new ArgumentNullException(nameof(outputFolder));
+            }
+
+            if (table == null)
+            {
+                throw new ArgumentNullException(nameof(table));
+            }
+
+            if (!Directory.Exists(outputFolder)) Directory.CreateDirectory(outputFolder);
+
+            Logger.Append($"Extracting \"{syseffPath}\"...");
+            progress?.Report(new ProgressInfo($"Extracting \"{syseffFileName}\"...", ++currentProgressValue, maxProgressSteps));
+
+            ALD.Extract(syseffPath, IsBigEndian, (blockStream, blockIndex, blockSize) =>
+            {
+                bool isGvr = GVR.IsValid(blockStream);
+
+                string outputFile = Path.Combine(outputFolder, $"{blockIndex:00}.bin");
+
+                using (FileStream fs = File.Create(outputFile))
+                {
+                    blockStream.CopySliceTo(fs, (int)blockSize);
+                }
+
+                if (isGvr)
+                {
+                    using (FileStream gvrStream = File.OpenRead(outputFile))
+                    {
+                        string gvrOutputFolder = Path.ChangeExtension(outputFile, null);
+                        GVR.Extract(gvrStream, gvrOutputFolder);
+                    }
+                }
+            });
         }
 
         protected void ExtractAfs(string inputAfsFile, string outputFolder, int disc, IProgress<ProgressInfo> progress, ref int currentProgressValue, int maxProgressSteps)

@@ -6,9 +6,11 @@ namespace RECV_Editor.File_Formats
 {
     class ALD
     {
+        public delegate void DataBlockFoundDelegate(SubStream blockStream, uint blockIndex, uint blockSize);
+
         const ushort FILE_END_PADDING = 0xFFFF;
 
-        public static void Extract(string inputFile, string outputFolder, Table table, bool bigEndian)
+        public static void Extract(string inputFile, bool bigEndian, DataBlockFoundDelegate dataBlockFoundCallback)
         {
             if (!File.Exists(inputFile))
             {
@@ -17,49 +19,39 @@ namespace RECV_Editor.File_Formats
 
             using (FileStream fs = File.OpenRead(inputFile))
             {
-                Extract(fs, outputFolder, table, bigEndian);
+                Extract(fs, bigEndian, dataBlockFoundCallback);
             }
         }
 
-        public static void Extract(Stream aldStream, string outputFolder, Table table, bool bigEndian)
+        public static void Extract(Stream aldStream, bool bigEndian, DataBlockFoundDelegate dataBlockFoundCallback)
         {
             if (aldStream == null)
             {
                 throw new ArgumentNullException(nameof(aldStream));
             }
 
-            if (string.IsNullOrEmpty(outputFolder))
+            if (dataBlockFoundCallback == null)
             {
-                throw new ArgumentNullException(nameof(outputFolder));
+                throw new ArgumentNullException(nameof(dataBlockFoundCallback));
             }
-
-            if (table == null)
-            {
-                throw new ArgumentNullException(nameof(table));
-            }
-
-            if (!Directory.Exists(outputFolder)) Directory.CreateDirectory(outputFolder);
 
             using (BinaryReader br = new BinaryReader(aldStream, Encoding.UTF8, true))
             {
-                uint currentBlock = 0;
+                uint currentBlockIndex = 0;
 
                 // Read each block
                 for (; ; )
                 {
                     uint blockSize = br.ReadUInt32Endian(bigEndian);
+                    if ((blockSize & 0x80000000) != 0) aldStream.Position += 4; // TODO: Is this always the case?
+                    blockSize &= 0x7fffffff;
 
                     long blockStartPosition = aldStream.Position;
                     long blockEndPosition = blockStartPosition + blockSize;
 
-                    // Obtain all texts in the block
                     using (SubStream blockStream = new SubStream(aldStream, 0, blockSize, true))
                     {
-                        string texts = Texts.Extract(blockStream, table, bigEndian);
-
-                        // Write all the texts in the block to a txt file
-                        string outputFile = Path.Combine(outputFolder, $"{currentBlock:00}.txt");
-                        File.WriteAllText(outputFile, texts);
+                        dataBlockFoundCallback(blockStream, currentBlockIndex, blockSize);
                     }
 
                     // Check if there are other blocks after this one
@@ -69,7 +61,7 @@ namespace RECV_Editor.File_Formats
                     if (value == FILE_END_PADDING) break;
 
                     aldStream.Position -= 2;
-                    currentBlock++;
+                    currentBlockIndex++;
                 }
             }
         }

@@ -315,5 +315,29 @@ namespace RECV_Editor.File_Formats
                 gvrStream.Write(finalChunkData, 0, finalChunkData.Length);
             }
         }
+
+        public static bool IsValid(Stream gvrStream)
+        {
+            using (BinaryReader br = new BinaryReader(gvrStream, Encoding.UTF8, true))
+            {
+                uint chunkMagic = br.ReadUInt32();
+                gvrStream.Position -= 4;
+
+                switch (chunkMagic)
+                {
+                    case GCIX_MAGIC:
+                    case TPVR_MAGIC:
+                    case PPVP_MAGIC:
+                    case GVPL_MAGIC:
+                    case PPVR_MAGIC:
+
+                        return true;
+
+                    default:
+
+                        return false;
+                }
+            }
+        }
     }
 }
