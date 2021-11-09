@@ -146,7 +146,7 @@ namespace RECV_Editor.File_Formats
                         if (line == BLOCK_END_STRING)
                         {
                             uint padding = Utils.Padding((uint)ms.Position, 4);
-                            padding = padding - (uint)ms.Position;
+                            padding -= (uint)ms.Position;
                             for (uint p = 0; p < padding; p++) bw.Write((byte)0xFF);
                             break;
                         }

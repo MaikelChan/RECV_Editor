@@ -213,7 +213,7 @@ namespace RECV_Editor.File_Formats
                                 metadata.Entries.Add(entry);
                             }
 
-                            byte[] finalChunkData = new byte[FINAL_CHUNK_SIZE];
+                            byte[] finalChunkData = new byte[Math.Min(FINAL_CHUNK_SIZE, gvrStream.Length - gvrStream.Position)];
                             gvrStream.Read(finalChunkData, 0, finalChunkData.Length);
                             metadata.FinalChunk = Convert.ToBase64String(finalChunkData);
 

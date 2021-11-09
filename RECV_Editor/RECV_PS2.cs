@@ -82,7 +82,6 @@ namespace RECV_Editor
             string languageCode = languageCodes[language];
             int languageIndex = languageIndices[language];
             string outputLanguageFolder = Path.Combine(discOutputFolder, languageCode);
-            string SYSMES_ALD_Path = $"{languageCode}/SYSMES{languageIndex}.ALD";
             string RDX_LNK_AFS_Path = $"{languageCode}/RDX_LNK{languageIndex}.AFS";
 
             string input_RDX_LNK = Path.Combine(discInputFolder, RDX_LNK_AFS_Path);
@@ -108,12 +107,16 @@ namespace RECV_Editor
 
             // Generate SYSMES1.ALD
 
-            string SYSMES = Path.Combine(discOutputFolder, SYSMES_ALD_Path);
+            {
+                string sysmesFileName = $"{languageCode}/SYSMES{languageIndex}.ALD";
+                string sysmesFilePath = Path.Combine(discOutputFolder, sysmesFileName);
+                string sysmesDataPath = Path.ChangeExtension(Path.Combine(discInputFolder, sysmesFileName), null);
 
-            Logger.Append($"Generating \"{SYSMES}\"...");
-            progress?.Report(new ProgressInfo($"Generating \"{SYSMES_ALD_Path}\"...", ++currentProgress, MaxInsertionProgressSteps));
+                Logger.Append($"Generating \"{sysmesFilePath}\"...");
+                progress?.Report(new ProgressInfo($"Generating \"{sysmesFileName}\"...", ++currentProgress, MaxInsertionProgressSteps));
 
-            ALD.Insert(Path.ChangeExtension(Path.Combine(discInputFolder, SYSMES_ALD_Path), null), SYSMES, table, IsBigEndian);
+                InsertSysmes(sysmesDataPath, sysmesFilePath, table);
+            }
 
             // Extract original RDX_LNK1 file
 

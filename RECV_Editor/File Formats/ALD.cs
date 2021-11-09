@@ -7,6 +7,7 @@ namespace RECV_Editor.File_Formats
     class ALD
     {
         public delegate void DataBlockFoundDelegate(SubStream blockStream, uint blockIndex, uint blockSize);
+        public delegate (byte[], bool) DataBlockInsertDelegate(uint blockIndex);
 
         const ushort FILE_END_PADDING = 0xFFFF;
 
@@ -66,7 +67,7 @@ namespace RECV_Editor.File_Formats
             }
         }
 
-        public static void Insert(string inputFolder, string outputAld, Table table, bool bigEndian)
+        public static void Insert(string outputAld, bool bigEndian, uint blockCount, DataBlockInsertDelegate dataBlockInsertCallback)
         {
             if (string.IsNullOrEmpty(outputAld))
             {
@@ -75,49 +76,39 @@ namespace RECV_Editor.File_Formats
 
             using (FileStream aldStream = File.Create(outputAld))
             {
-                Insert(inputFolder, aldStream, table, bigEndian);
+                Insert(aldStream, bigEndian, blockCount, dataBlockInsertCallback);
             }
         }
 
-        public static void Insert(string inputFolder, Stream aldStream, Table table, bool bigEndian)
+        public static void Insert(Stream aldStream, bool bigEndian, uint blockCount, DataBlockInsertDelegate dataBlockInsertCallback)
         {
-            if (string.IsNullOrEmpty(inputFolder))
-            {
-                throw new ArgumentNullException(nameof(inputFolder));
-            }
-
-            if (!Directory.Exists(inputFolder))
-            {
-                throw new DirectoryNotFoundException($"Directory \"{inputFolder}\" does not exist!");
-            }
-
             if (aldStream == null)
             {
                 throw new ArgumentNullException(nameof(aldStream));
             }
 
-            if (table == null)
+            if (dataBlockInsertCallback == null)
             {
-                throw new ArgumentNullException(nameof(table));
+                throw new ArgumentNullException(nameof(dataBlockInsertCallback));
             }
-
-            string[] textFilesNames = Directory.GetFiles(inputFolder, "*.txt");
 
             using (BinaryWriter bw = new BinaryWriter(aldStream, Encoding.UTF8, true))
             {
-                for (int t = 0; t < textFilesNames.Length; t++)
+                for (uint b = 0; b < blockCount; b++)
                 {
-                    string text = File.ReadAllText(textFilesNames[t]);
+                    (byte[] blockData, bool isGvr) = dataBlockInsertCallback(b);
 
-                    using (MemoryStream ms = new MemoryStream())
+                    if (isGvr)
                     {
-                        Texts.Insert(text, ms, table, bigEndian);
-
-                        bw.WriteEndian((uint)ms.Length, bigEndian);
-
-                        ms.Position = 0;
-                        ms.CopyTo(aldStream);
+                        bw.WriteEndian((uint)(0x80000000 | blockData.Length), bigEndian); // TODO: Is this always the case?
+                        aldStream.Position += 4;
                     }
+                    else
+                    {
+                        bw.WriteEndian((uint)blockData.Length, bigEndian);
+                    }
+
+                    aldStream.Write(blockData, 0, blockData.Length);
                 }
 
                 bw.WriteEndian(0xFFFFFFFF, bigEndian);

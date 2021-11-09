@@ -15,7 +15,7 @@ namespace RECV_Editor
         Settings settings;
         const string SETTINGS_FILE = "Settings.json";
 
-        TaskbarManager taskbarManager = TaskbarManager.Instance;
+        readonly TaskbarManager taskbarManager = TaskbarManager.Instance;
         bool firstTaskbarProgressUpdate = true;
 
         RECV recv;
@@ -201,8 +201,8 @@ namespace RECV_Editor
         void UpdateStatus(RECV.ProgressInfo progressInfo)
         {
             StatusLabel.Text = progressInfo.statusText;
-            StatusProgressBar.Value = progressInfo.progressValue;
             StatusProgressBar.Maximum = progressInfo.maxProgressValue;
+            StatusProgressBar.Value = progressInfo.progressValue;
 
             if (firstTaskbarProgressUpdate)
             {

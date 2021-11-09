@@ -353,6 +353,43 @@ namespace RECV_Editor
 
         #region Insertion Methods
 
+        protected void InsertSysmes(string inputFolder, string outputFilePath, Table table)
+        {
+            string[] textFilesNames = Directory.GetFiles(inputFolder, "*.txt");
+
+            ALD.Insert(outputFilePath, IsBigEndian, (uint)textFilesNames.Length, (blockIndex) =>
+            {
+                string text = File.ReadAllText(textFilesNames[blockIndex]);
+
+                using (MemoryStream ms = new MemoryStream())
+                {
+                    Texts.Insert(text, ms, table, IsBigEndian);
+                    return (ms.ToArray(), false);
+                }
+            });
+        }
+
+        protected void InsertSyseff(string inputFolder, string outputFilePath, Table table)
+        {
+            string[] fileNames = Directory.GetFiles(inputFolder, "*.bin");
+
+            ALD.Insert(outputFilePath, IsBigEndian, (uint)fileNames.Length, (blockIndex) =>
+            {
+                string extractedDataPath = Path.ChangeExtension(fileNames[blockIndex], null);
+                bool isGvr = Directory.Exists(extractedDataPath);
+
+                if (isGvr)
+                {
+                    using (FileStream gvrStream = File.Create(fileNames[blockIndex]))
+                    {
+                        GVR.Insert(extractedDataPath, gvrStream);
+                    }
+                }
+
+                return (File.ReadAllBytes(fileNames[blockIndex]), isGvr);
+            });
+        }
+
         protected void InsertRdxFiles(string inputRdxLnkFolder, string[] outputRdxFiles, int language, int disc, Table table, Platforms platform, IProgress<ProgressInfo> progress, ref int currentProgress, int maxProgressSteps)
         {
             if (!Directory.Exists(inputRdxLnkFolder))

@@ -19,8 +19,8 @@ namespace RECV_Editor
         protected override int DiscCount => 2;
         protected override bool IsBigEndian => true;
 
-        protected override int MaxExtractionProgressSteps => 7;
-        protected override int MaxInsertionProgressSteps => 9;
+        protected override int MaxExtractionProgressSteps => 9;
+        protected override int MaxInsertionProgressSteps => 11;
 
         protected override void ExtractDisc(string discInputFolder, string discOutputFolder, Table table, int language, int disc, IProgress<ProgressInfo> progress, ref int currentProgress)
         {
@@ -92,7 +92,6 @@ namespace RECV_Editor
 
             string languageCode = languageCodes[language];
             int languageIndex = languageIndices[language];
-            string SYSMES_ALD_Path = $"sysmes{languageIndex}.ald";
             string RDX_LNK_AFS_Path = $"rdx_lnk{disc}.afs";
 
             string input_RDX_LNK = Path.Combine(discInputFolder, RDX_LNK_AFS_Path);
@@ -116,14 +115,31 @@ namespace RECV_Editor
                 Directory.CreateDirectory(discOutputFolder);
             }
 
-            // Generate SYSMES1.ALD
+            // Generate SYSMES
 
-            string SYSMES = Path.Combine(discOutputFolder, SYSMES_ALD_Path);
+            {
+                string sysmesFileName = $"sysmes{languageIndex}.ald";
+                string sysmesFilePath = Path.Combine(discOutputFolder, sysmesFileName);
+                string sysmesDataPath = Path.ChangeExtension(Path.Combine(discInputFolder, languageCode, sysmesFileName), null);
 
-            Logger.Append($"Generating \"{SYSMES}\"...");
-            progress?.Report(new ProgressInfo($"Generating \"{SYSMES_ALD_Path}\"...", ++currentProgress, MaxInsertionProgressSteps));
+                Logger.Append($"Generating \"{sysmesFilePath}\"...");
+                progress?.Report(new ProgressInfo($"Generating \"{sysmesFileName}\"...", ++currentProgress, MaxInsertionProgressSteps));
 
-            ALD.Insert(Path.ChangeExtension(Path.Combine(discInputFolder, languageCode, SYSMES_ALD_Path), null), SYSMES, table, IsBigEndian);
+                InsertSysmes(sysmesDataPath, sysmesFilePath, table);
+            }
+
+            // Generate SYSEFF
+
+            {
+                string syseffFileName = $"syseff{languageIndex}.ald";
+                string syseffFilePath = Path.Combine(discOutputFolder, syseffFileName);
+                string syseffDataPath = Path.ChangeExtension(Path.Combine(discInputFolder, languageCode, syseffFileName), null);
+
+                Logger.Append($"Generating \"{syseffFilePath}\"...");
+                progress?.Report(new ProgressInfo($"Generating \"{syseffFileName}\"...", ++currentProgress, MaxInsertionProgressSteps));
+
+                InsertSyseff(syseffDataPath, syseffFilePath, table);
+            }
 
             // Extract original RDX_LNK1 file
 
