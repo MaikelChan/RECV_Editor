@@ -65,6 +65,8 @@
     <Compile Include="AboutForm.Designer.cs">
       <DependentUpon>AboutForm.cs</DependentUpon>
     </Compile>
+    <Compile Include="AFSMetadata.cs" />
+    <Compile Include="AFSMetadataEntry.cs" />
     <Compile Include="Constants.cs" />
     <Compile Include="File Formats\ALD.cs" />
     <Compile Include="File Formats\GVR.cs" />

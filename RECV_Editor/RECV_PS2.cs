@@ -55,7 +55,7 @@ namespace RECV_Editor
                 string rdxLnkInputFolder = Path.Combine(discInputFolder, languageCode);
                 string rdxLnkFileName = $"RDX_LNK{languageIndex}.AFS";
                 rdxLnkOutputFolder = Path.ChangeExtension(Path.Combine(discOutputFolder, languageCode, rdxLnkFileName), null);
-                ExtractAfs(Path.Combine(rdxLnkInputFolder, rdxLnkFileName), rdxLnkOutputFolder, 1, progress, ref currentProgress, MaxExtractionProgressSteps * DiscCount);
+                ExtractAfs(Path.Combine(rdxLnkInputFolder, rdxLnkFileName), rdxLnkOutputFolder, false, 1, progress, ref currentProgress, MaxExtractionProgressSteps * DiscCount);
             }
 
             // Rename PS2 RDX files for convenience
@@ -120,7 +120,7 @@ namespace RECV_Editor
 
             // Extract original RDX_LNK1 file
 
-            ExtractAfs(Path.Combine(discOriginalDataFolder, RDX_LNK_AFS_Path), output_RDX_LNK_folder, disc, progress, ref currentProgress, MaxInsertionProgressSteps);
+            ExtractAfs(Path.Combine(discOriginalDataFolder, RDX_LNK_AFS_Path), output_RDX_LNK_folder, false, disc, progress, ref currentProgress, MaxInsertionProgressSteps);
 
             // Rename PS2 RDX files for convenience
 
@@ -140,7 +140,7 @@ namespace RECV_Editor
 
             // Insert RDX files into new RDX_LNK1 file
 
-            GenerateAfs(output_RDX_LNK_folder, output_RDX_LNK, progress, ref currentProgress);
+            GenerateAfs(output_RDX_LNK_folder, output_RDX_LNK, false, progress, ref currentProgress);
         }
 
         public static string GetLanguageCode(int language)

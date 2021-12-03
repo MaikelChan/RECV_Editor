@@ -1,4 +1,5 @@
 ﻿using AFSLib;
+using AFSPacker;
 using PSO.PRS;
 using RECV_Editor.File_Formats;
 using System;
@@ -301,7 +302,7 @@ namespace RECV_Editor
             });
         }
 
-        protected void ExtractAfs(string inputAfsFile, string outputFolder, int disc, IProgress<ProgressInfo> progress, ref int currentProgressValue, int maxProgressSteps)
+        protected void ExtractAfs(string inputAfsFile, string outputFolder, bool generateMetadata, int disc, IProgress<ProgressInfo> progress, ref int currentProgressValue, int maxProgressSteps)
         {
             Logger.Append($"Extracting \"{inputAfsFile}\"...");
             progress?.Report(new ProgressInfo($"Extracting \"{Path.GetFileName(inputAfsFile)}\" (Disc {disc})...", ++currentProgressValue, maxProgressSteps));
@@ -310,7 +311,12 @@ namespace RECV_Editor
             {
                 afs.NotifyProgress += AFS_NotifyProgress;
                 afs.ExtractAllEntriesToDirectory(outputFolder);
-                afs.NotifyProgress -= AFS_NotifyProgress;
+
+                if (generateMetadata)
+                {
+                    AFSMetadata metadata = new AFSMetadata(afs);
+                    metadata.SaveToFile(outputFolder + ".json");
+                }
             }
         }
 
@@ -450,25 +456,64 @@ namespace RECV_Editor
 #endif
         }
 
-        protected void GenerateAfs(string inputDirectory, string outputAfsFile, IProgress<ProgressInfo> progress, ref int currentProgress)
+        protected void GenerateAfs(string inputDirectory, string outputAfsFile, bool readMetadata, IProgress<ProgressInfo> progress, ref int currentProgress)
         {
             Logger.Append($"Generating \"{outputAfsFile}\"...");
             progress?.Report(new ProgressInfo($"Generating \"{Path.GetFileName(outputAfsFile)}\"...", ++currentProgress, MaxInsertionProgressSteps));
 
-            string[] rdxFiles = Directory.GetFiles(inputDirectory);
-
-            using (AFS afs = new AFS())
+            if (readMetadata)
             {
-                afs.AttributesInfoType = AttributesInfoType.NoAttributes;
-                afs.NotifyProgress += AFS_NotifyProgress;
+                string metadataFileName = inputDirectory + ".json";
+                AFSMetadata metadata = AFSMetadata.LoadFromFile(metadataFileName);
 
-                for (int f = 0; f < rdxFiles.Length; f++)
+                using (AFS afs = new AFS())
                 {
-                    afs.AddEntryFromFile(rdxFiles[f]);
+                    afs.NotifyProgress += AFS_NotifyProgress;
+
+                    afs.HeaderMagicType = metadata.HeaderMagicType;
+                    afs.AttributesInfoType = metadata.AttributesInfoType;
+                    afs.EntryBlockAlignment = metadata.EntryBlockAlignment;
+
+                    for (int e = 0; e < metadata.Entries.Length; e++)
+                    {
+                        if (metadata.Entries[e].IsNull)
+                        {
+                            afs.AddNullEntry();
+                        }
+                        else
+                        {
+                            string filePath = Path.Combine(inputDirectory, metadata.Entries[e].FileName);
+                            FileEntry fileEntry = afs.AddEntryFromFile(filePath, metadata.Entries[e].Name);
+
+                            if (metadata.Entries[e].HasUnknownAttribute)
+                            {
+                                fileEntry.UnknownAttribute = metadata.Entries[e].UnknownAttribute;
+                            }
+                        }
+                    }
+
+                    afs.SaveToFile(outputAfsFile);
                 }
 
-                afs.SaveToFile(outputAfsFile);
-                afs.NotifyProgress -= AFS_NotifyProgress;
+                File.Delete(metadataFileName);
+            }
+            else
+            {
+                string[] rdxFiles = Directory.GetFiles(inputDirectory);
+
+                using (AFS afs = new AFS())
+                {
+                    afs.NotifyProgress += AFS_NotifyProgress;
+
+                    afs.AttributesInfoType = AttributesInfoType.NoAttributes;
+
+                    for (int f = 0; f < rdxFiles.Length; f++)
+                    {
+                        afs.AddEntryFromFile(rdxFiles[f]);
+                    }
+
+                    afs.SaveToFile(outputAfsFile);
+                }
             }
 
             Directory.Delete(inputDirectory, true);

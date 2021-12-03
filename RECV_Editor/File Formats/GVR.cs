@@ -253,7 +253,6 @@ namespace RECV_Editor.File_Formats
             string metadataFileName = Path.Combine(inputFolder, METADATA_FILENAME);
             GVR_Metadata metadata = JsonConvert.DeserializeObject<GVR_Metadata>(File.ReadAllText(metadataFileName));
 
-            using (BinaryReader br = new BinaryReader(gvrStream, Encoding.UTF8, true))
             using (BinaryWriter bw = new BinaryWriter(gvrStream, Encoding.UTF8, true))
             {
                 for (int e = 0; e < metadata.Entries.Count; e++)
@@ -308,11 +307,60 @@ namespace RECV_Editor.File_Formats
                     {
                         throw new InvalidDataException($"Entry with index {e} in \"{metadataFileName}\" is expected to be {entry.EntrySize} bytes but it is {entrySize} bytes.");
                     }
-
                 }
 
                 byte[] finalChunkData = Convert.FromBase64String(metadata.FinalChunk);
                 gvrStream.Write(finalChunkData, 0, finalChunkData.Length);
+            }
+        }
+
+        public static void MassExtract(string inputFolder, bool deleteOriginalFiles)
+        {
+            string[] fileNames = Directory.GetFiles(inputFolder);
+            for (int f = 0; f < fileNames.Length; f++)
+            {
+                using (FileStream fs = File.OpenRead(fileNames[f]))
+                using (BinaryReader br = new BinaryReader(fs))
+                {
+                    for (; ; )
+                    {
+                        if (IsValid(fs))
+                        {
+                            Extract(fs, Path.Combine(inputFolder, $"{fileNames[f]}_{fs.Position:X8}"));
+                        }
+                        else
+                        {
+                            fs.Position += 0x10;
+                        }
+
+                        if (fs.Position >= fs.Length) break;
+                    }
+                }
+
+                if (deleteOriginalFiles) File.Delete(fileNames[f]);
+            }
+        }
+
+        public static void MassInsert(string inputFolder, string outputFolder)
+        {
+            string[] directories = Directory.GetDirectories(inputFolder);
+            for (int d = 0; d < directories.Length; d++)
+            {
+                string directoryName = Path.GetFileName(directories[d]);
+                string fileName = directoryName.Substring(0, directoryName.Length - 9);
+                uint position = uint.Parse(directoryName.Substring(directoryName.Length - 8), System.Globalization.NumberStyles.HexNumber);
+
+                string outputFileName = Path.Combine(outputFolder, fileName);
+                if (!File.Exists(outputFileName))
+                {
+                    throw new FileNotFoundException($"File {outputFileName} has not been found.");
+                }
+
+                using (FileStream fs = File.OpenWrite(outputFileName))
+                {
+                    fs.Position = position;
+                    Insert(directories[d], fs);
+                }
             }
         }
 

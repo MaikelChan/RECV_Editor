@@ -19,8 +19,8 @@ namespace RECV_Editor
         protected override int DiscCount => 2;
         protected override bool IsBigEndian => true;
 
-        protected override int MaxExtractionProgressSteps => 9;
-        protected override int MaxInsertionProgressSteps => 11;
+        protected override int MaxExtractionProgressSteps => 11;
+        protected override int MaxInsertionProgressSteps => 15;
 
         protected override void ExtractDisc(string discInputFolder, string discOutputFolder, Table table, int language, int disc, IProgress<ProgressInfo> progress, ref int currentProgress)
         {
@@ -62,15 +62,24 @@ namespace RECV_Editor
                 ExtractSyseff(discInputFolder, syseffFileName, syseffOutputFolder, table, progress, ref currentProgress, MaxExtractionProgressSteps);
             }
 
+            // Extract MRY
+
+            {
+                string mryFileName = $"mry.afs";
+                string mryOutputFolder = Path.ChangeExtension(Path.Combine(discOutputFolder, mryFileName), null);
+                ExtractAfs(Path.Combine(discInputFolder, mryFileName), mryOutputFolder, false, disc, progress, ref currentProgress, MaxExtractionProgressSteps);
+
+                GVR.MassExtract(mryOutputFolder, true);
+            }
+
             // Extract AFS files
 
             string rdxLnkOutputFolder;
 
             {
-                string rdxLnkInputFolder = discInputFolder;
                 string rdxLnkFileName = $"rdx_lnk{disc}.afs";
                 rdxLnkOutputFolder = Path.ChangeExtension(Path.Combine(discOutputFolder, rdxLnkFileName), null);
-                ExtractAfs(Path.Combine(rdxLnkInputFolder, rdxLnkFileName), rdxLnkOutputFolder, disc, progress, ref currentProgress, MaxExtractionProgressSteps);
+                ExtractAfs(Path.Combine(discInputFolder, rdxLnkFileName), rdxLnkOutputFolder, false, disc, progress, ref currentProgress, MaxExtractionProgressSteps);
             }
 
             // Decompress files in RDX_LNK1
@@ -141,9 +150,21 @@ namespace RECV_Editor
                 InsertSyseff(syseffDataPath, syseffFilePath, table);
             }
 
+            // Generate MRY
+
+            {
+                string mryFileName = $"mry.afs";
+                string mryInputFolder = Path.ChangeExtension(Path.Combine(discInputFolder, mryFileName), null);
+                string mryOutputFolder = Path.ChangeExtension(Path.Combine(discOutputFolder, mryFileName), null);
+                ExtractAfs(Path.Combine(discOriginalDataFolder, mryFileName), mryOutputFolder, true, disc, progress, ref currentProgress, MaxInsertionProgressSteps);
+
+                GVR.MassInsert(mryInputFolder, mryOutputFolder);
+                GenerateAfs(mryOutputFolder, Path.Combine(discOutputFolder, mryFileName), true, progress, ref currentProgress);
+            }
+
             // Extract original RDX_LNK1 file
 
-            ExtractAfs(Path.Combine(discOriginalDataFolder, RDX_LNK_AFS_Path), output_RDX_LNK_folder, disc, progress, ref currentProgress, MaxInsertionProgressSteps);
+            ExtractAfs(Path.Combine(discOriginalDataFolder, RDX_LNK_AFS_Path), output_RDX_LNK_folder, false, disc, progress, ref currentProgress, MaxInsertionProgressSteps);
             string[] outputRdxFiles = Directory.GetFiles(output_RDX_LNK_folder);
 
             // Generate RDX files
@@ -152,7 +173,7 @@ namespace RECV_Editor
 
             // Insert RDX files into new RDX_LNK1 file
 
-            GenerateAfs(output_RDX_LNK_folder, output_RDX_LNK, progress, ref currentProgress);
+            GenerateAfs(output_RDX_LNK_folder, output_RDX_LNK, false, progress, ref currentProgress);
         }
 
         public static string GetLanguageCode(int language)
