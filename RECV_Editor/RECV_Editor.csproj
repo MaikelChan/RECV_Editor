@@ -21,7 +21,7 @@
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
     <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>TRACE;DEBUG;MULTITHREADING</DefineConstants>
+    <DefineConstants>TRACE;DEBUG;_MULTITHREADING</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
@@ -69,6 +69,8 @@
     <Compile Include="AFSMetadataEntry.cs" />
     <Compile Include="Constants.cs" />
     <Compile Include="File Formats\ALD.cs" />
+    <Compile Include="File Formats\ADV.cs" />
+    <Compile Include="File Formats\PVR.cs" />
     <Compile Include="File Formats\GVR.cs" />
     <Compile Include="File Formats\RDX_GameCube.cs" />
     <Compile Include="File Formats\RDX_PS2.cs" />
@@ -92,6 +94,7 @@
     <Compile Include="File Formats\RDX.cs" />
     <Compile Include="RECV.cs" />
     <Compile Include="File Formats\Table.cs" />
+    <Compile Include="RECV_DC.cs" />
     <Compile Include="RECV_GameCube.cs" />
     <Compile Include="RECV_PS2.cs" />
     <Compile Include="Settings.cs" />

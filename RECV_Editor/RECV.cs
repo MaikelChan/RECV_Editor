@@ -12,7 +12,7 @@ namespace RECV_Editor
 {
     abstract class RECV
     {
-        public enum Platforms { PS2, GameCube }
+        public enum Platforms { PS2, GameCube, Dreamcast }
 
         public delegate void UpdateStatusDelegate(ProgressInfo progress);
 
@@ -57,7 +57,8 @@ namespace RECV_Editor
         public const string SPA_LANGUAGE_NAME = "Spanish";
         public const string ITA_LANGUAGE_NAME = "Italian";
 
-        protected const string RDX_EXTRACTED_FOLDER_SUFFIX = "_extract";
+        protected const string EXTRACTED_FOLDER_SUFFIX = "_extract";
+        protected const string TEMP_FOLDER_SUFFIX = "_temp";
 
         protected abstract void ExtractDisc(string discInputFolder, string discOutputFolder, Table table, int language, int disc, IProgress<ProgressInfo> progress, ref int currentProgress);
         protected abstract void InsertDisc(string discInputFolder, string discOutputFolder, string discOriginalDataFolder, Table table, int language, int disc, IProgress<ProgressInfo> progress, ref int currentProgress);
@@ -211,6 +212,7 @@ namespace RECV_Editor
             {
                 case Platforms.PS2: return new RECV_PS2();
                 case Platforms.GameCube: return new RECV_GameCube();
+                case Platforms.Dreamcast: return new RECV_DC();
                 default: throw new NotImplementedException($"Platform {platform} is not implemented.");
             }
         }
@@ -302,6 +304,45 @@ namespace RECV_Editor
             });
         }
 
+        protected void ExtractAdv(string advInputFolder, string advFileName, string advOutputFolder, Table table, int disc, IProgress<ProgressInfo> progress, ref int currentProgressValue, int maxProgressSteps)
+        {
+            string advPath = Path.Combine(advInputFolder, advFileName);
+
+            if (!File.Exists(advPath))
+            {
+                throw new FileNotFoundException($"File \"{advPath}\" does not exist!", advPath);
+            }
+
+            if (string.IsNullOrEmpty(advOutputFolder))
+            {
+                throw new ArgumentNullException(nameof(advOutputFolder));
+            }
+
+            if (table == null)
+            {
+                throw new ArgumentNullException(nameof(table));
+            }
+
+            string tempOutputFolder = advOutputFolder + TEMP_FOLDER_SUFFIX;
+            ExtractAfs(advPath, tempOutputFolder, false, disc, progress, ref currentProgressValue, maxProgressSteps);
+
+            // Process each extracted file
+
+            string[] files = Directory.GetFiles(tempOutputFolder);
+
+            for (int f = 0; f < files.Length; f++)
+            {
+                using (FileStream fs = File.OpenRead(files[f]))
+                {
+                    ADV.Extract(fs, Path.Combine(advOutputFolder, Path.GetFileNameWithoutExtension(files[f])), table, IsBigEndian);
+                }
+            }
+
+            // Delete extracted files
+
+            if (Directory.Exists(tempOutputFolder)) Directory.Delete(tempOutputFolder, true);
+        }
+
         protected void ExtractAfs(string inputAfsFile, string outputFolder, bool generateMetadata, int disc, IProgress<ProgressInfo> progress, ref int currentProgressValue, int maxProgressSteps)
         {
             Logger.Append($"Extracting \"{inputAfsFile}\"...");
@@ -346,7 +387,7 @@ namespace RECV_Editor
 
                 File.Delete(rdxFiles[f]);
 
-                RDX.Results result = rdx.Extract(rdxUncompressedData, Path.GetFileName(rdxFiles[f]), rdxFiles[f] + RDX_EXTRACTED_FOLDER_SUFFIX, language, table);
+                RDX.Results result = rdx.Extract(rdxUncompressedData, Path.GetFileName(rdxFiles[f]), rdxFiles[f] + EXTRACTED_FOLDER_SUFFIX, language, table);
                 if (result == RDX.Results.NotValidRdxFile) Logger.Append($"\"{rdxFiles[f]}\" is not a valid RDX file. Ignoring.", Logger.LogTypes.Warning);
 #if MULTITHREADING
             });
@@ -417,7 +458,7 @@ namespace RECV_Editor
             for (int r = 0; r < outputRdxFiles.Length; r++)
 #endif
             {
-                string inputRdxPath = Path.Combine(inputRdxLnkFolder, Path.GetFileName(outputRdxFiles[r]) + RDX_EXTRACTED_FOLDER_SUFFIX);
+                string inputRdxPath = Path.Combine(inputRdxLnkFolder, Path.GetFileName(outputRdxFiles[r]) + EXTRACTED_FOLDER_SUFFIX);
 
                 progress?.Report(new ProgressInfo($"Inserting RDX files (Disc {disc})... ({currentRdxFile++}/{outputRdxFiles.Length})", progressValue, maxProgressSteps));
 
