@@ -72,6 +72,7 @@
     <Compile Include="File Formats\ADV.cs" />
     <Compile Include="File Formats\PVR.cs" />
     <Compile Include="File Formats\GVR.cs" />
+    <Compile Include="File Formats\RDX_Dreamcast.cs" />
     <Compile Include="File Formats\RDX_GameCube.cs" />
     <Compile Include="File Formats\RDX_PS2.cs" />
     <Compile Include="File Formats\Texts.cs" />

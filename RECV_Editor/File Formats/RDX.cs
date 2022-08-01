@@ -67,6 +67,7 @@ namespace RECV_Editor.File_Formats
             {
                 case RECV.Platforms.PS2: return new RDX_PS2();
                 case RECV.Platforms.GameCube: return new RDX_GameCube();
+                case RECV.Platforms.Dreamcast: return new RDX_Dreamcast();
                 default: throw new NotImplementedException($"Platform {platform} is not implemented.");
             }
         }

@@ -85,7 +85,7 @@ namespace RECV_Editor
             // Decompress files in RDX_LNK1
 
             string[] rdxFiles = Directory.GetFiles(rdxLnkOutputFolder);
-            ExtractRdxFiles(rdxFiles, language, disc, table, progress, ref currentProgress);
+            ExtractRdxFiles(rdxFiles, null, language, disc, table, true, progress, ref currentProgress);
         }
 
         protected override void InsertDisc(string discInputFolder, string discOutputFolder, string discOriginalDataFolder, Table table, int language, int disc, IProgress<ProgressInfo> progress, ref int currentProgress)

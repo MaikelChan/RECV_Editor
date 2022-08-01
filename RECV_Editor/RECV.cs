@@ -361,7 +361,7 @@ namespace RECV_Editor
             }
         }
 
-        protected void ExtractRdxFiles(string[] rdxFiles, int language, int disc, Table table, IProgress<ProgressInfo> progress, ref int currentProgress)
+        protected void ExtractRdxFiles(string[] rdxFiles, string outputFolder, int language, int disc, Table table, bool deleteOriginals, IProgress<ProgressInfo> progress, ref int currentProgress)
         {
             RDX rdx = RDX.GetRDX(Platform);
 
@@ -385,9 +385,13 @@ namespace RECV_Editor
                 byte[] rdxUncompressedData = PRS.Decompress(rdxData);
                 //File.WriteAllBytes(rdxFiles[f] + ".unc", rdxUncompressedData);
 
-                File.Delete(rdxFiles[f]);
+                if (deleteOriginals) File.Delete(rdxFiles[f]);
 
-                RDX.Results result = rdx.Extract(rdxUncompressedData, Path.GetFileName(rdxFiles[f]), rdxFiles[f] + EXTRACTED_FOLDER_SUFFIX, language, table);
+                string output;
+                if (string.IsNullOrEmpty(outputFolder)) output = rdxFiles[f] + EXTRACTED_FOLDER_SUFFIX;
+                else output = Path.Combine(outputFolder, Path.GetFileName(rdxFiles[f]) + EXTRACTED_FOLDER_SUFFIX);
+
+                RDX.Results result = rdx.Extract(rdxUncompressedData, Path.GetFileName(rdxFiles[f]), output, language, table);
                 if (result == RDX.Results.NotValidRdxFile) Logger.Append($"\"{rdxFiles[f]}\" is not a valid RDX file. Ignoring.", Logger.LogTypes.Warning);
 #if MULTITHREADING
             });

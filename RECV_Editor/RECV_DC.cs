@@ -19,7 +19,7 @@ namespace RECV_Editor
         protected override int DiscCount => 2;
         protected override bool IsBigEndian => false;
 
-        protected override int MaxExtractionProgressSteps => 11; // TODO
+        protected override int MaxExtractionProgressSteps => 9;
         protected override int MaxInsertionProgressSteps => 15;
 
         protected override void ExtractDisc(string discInputFolder, string discOutputFolder, Table table, int language, int disc, IProgress<ProgressInfo> progress, ref int currentProgress)
@@ -71,24 +71,16 @@ namespace RECV_Editor
                 PVR.MassExtract(mryOutputFolder, mryOutputFolder, true);
             }
 
-            // Extract AFS files
-
-            string rdxLnkOutputFolder;
-
-            {
-                string rdxLnkFileName = $"rdx_lnk{disc}.afs";
-                rdxLnkOutputFolder = Path.ChangeExtension(Path.Combine(discOutputFolder, rdxLnkFileName), null);
-                ExtractAfs(Path.Combine(discInputFolder, rdxLnkFileName), rdxLnkOutputFolder, false, disc, progress, ref currentProgress, MaxExtractionProgressSteps);
-            }
-
             // Decompress files in RDX_LNK1
 
-            string[] rdxFiles = Directory.GetFiles(rdxLnkOutputFolder);
-            ExtractRdxFiles(rdxFiles, language, disc, table, progress, ref currentProgress);
+            string[] rdxFiles = Directory.GetFiles(discInputFolder, "*.RDX");
+            ExtractRdxFiles(rdxFiles, discOutputFolder, language, disc, table, false, progress, ref currentProgress);
         }
 
         protected override void InsertDisc(string discInputFolder, string discOutputFolder, string discOriginalDataFolder, Table table, int language, int disc, IProgress<ProgressInfo> progress, ref int currentProgress)
         {
+            throw new NotImplementedException("Ojo, que esto está aún en obras.");
+
             discOriginalDataFolder = Path.Combine(discOriginalDataFolder, "files");
 
             if (!Directory.Exists(discOriginalDataFolder))

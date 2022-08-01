@@ -14,20 +14,20 @@ namespace RECV_Editor.File_Formats
         const uint GBIX_MAGIC = 0x58494247;
         const uint PVRT_MAGIC = 0x54525650;
         const uint TPVR_MAGIC = 0x52565054;
-        //const uint PPVP_MAGIC = 0x50565050;
+        const uint PPVP_MAGIC = 0x50565050;
         const uint PVPL_MAGIC = 0x4c505650;
         const uint PPVR_MAGIC = 0x52565050;
         const uint FINAL_CHUNK_MAGIC = 0xFFFFFFFF;
 
         const string GBIX_PVRT_NAME = "GBIX/PVRT";
         const string TPVR_NAME = "TPVR";
-        //const string PPVP_NAME = "PPVP";
+        const string PPVP_NAME = "PPVP";
         const string PVPL_NAME = "PVPL";
         const string PPVR_NAME = "PPVR";
 
         const uint GBIX_SIZE = 0x10;
         const uint TPVR_SIZE = 0x20;
-        //const uint PPVP_SIZE = 0x20;
+        const uint PPVP_SIZE = 0x20;
         const uint PPVR_SIZE = 0x20;
         const uint FINAL_CHUNK_SIZE = 0x20;
 
@@ -92,19 +92,19 @@ namespace RECV_Editor.File_Formats
                             break;
                         }
 
-                        //case PPVP_MAGIC:
-                        //{
-                        //    byte[] chunkData = new byte[PPVP_SIZE];
-                        //    pvrStream.Read(chunkData, 0, chunkData.Length);
+                        case PPVP_MAGIC:
+                        {
+                            byte[] chunkData = new byte[PPVP_SIZE];
+                            pvrStream.Read(chunkData, 0, chunkData.Length);
 
-                        //    entry.Chunks.Add(new PVR_Chunk()
-                        //    {
-                        //        ChunkType = PPVP_NAME,
-                        //        ChunkData = Convert.ToBase64String(chunkData)
-                        //    });
+                            entry.Chunks.Add(new PVR_Chunk()
+                            {
+                                ChunkType = PPVP_NAME,
+                                ChunkData = Convert.ToBase64String(chunkData)
+                            });
 
-                        //    break;
-                        //}
+                            break;
+                        }
 
                         case PVPL_MAGIC:
                         {
@@ -152,7 +152,7 @@ namespace RECV_Editor.File_Formats
 
                         case GBIX_MAGIC:
                         {
-                            string gcixName = outputFileName + ".pvr";
+                            string gbixName = outputFileName + ".pvr";
 
                             pvrStream.Position += GBIX_SIZE;
                             uint magic = br.ReadUInt32();
@@ -167,19 +167,23 @@ namespace RECV_Editor.File_Formats
 
                             uint pvrSize = br.ReadUInt32();
 
+                            // Apparently size must be aligned to 0x20 bytes
+
+                            pvrSize = Utils.Padding(pvrSize + 0x18, 0x20);
+
                             // Go back to the beginning of the GBIX chunk
 
                             pvrStream.Position -= 8 + GBIX_SIZE;
 
-                            using (FileStream fs = File.OpenWrite(gcixName))
+                            using (FileStream fs = File.OpenWrite(gbixName))
                             {
-                                pvrStream.CopySliceTo(fs, (int)(pvrSize + 0x18));
+                                pvrStream.CopySliceTo(fs, (int)pvrSize);
                             }
 
                             entry.Chunks.Add(new PVR_Chunk()
                             {
                                 ChunkType = GBIX_PVRT_NAME,
-                                ChunkData = Path.GetFileName(gcixName) // Store file name, as it will be extracted to a .pvr file
+                                ChunkData = Path.GetFileName(gbixName) // Store file name, as it will be extracted to a .pvr file
                             });
 
                             // We've found all the chunks of this entry, so store the size
@@ -268,7 +272,7 @@ namespace RECV_Editor.File_Formats
                         switch (entry.Chunks[c].ChunkType)
                         {
                             case TPVR_NAME:
-                            //case PPVP_NAME:
+                            case PPVP_NAME:
                             case PPVR_NAME:
                             {
                                 data = Convert.FromBase64String(entry.Chunks[c].ChunkData);
@@ -287,8 +291,8 @@ namespace RECV_Editor.File_Formats
 
                             case GBIX_PVRT_NAME:
                             {
-                                string gcixFileName = Path.Combine(inputFolder, entry.Chunks[c].ChunkData);
-                                data = File.ReadAllBytes(gcixFileName);
+                                string gbixFileName = Path.Combine(inputFolder, entry.Chunks[c].ChunkData);
+                                data = File.ReadAllBytes(gbixFileName);
 
                                 break;
                             }
@@ -355,7 +359,7 @@ namespace RECV_Editor.File_Formats
 
                     case GBIX_MAGIC:
                     {
-                        string gcixName = outputFileName + ".pvr";
+                        string gbixName = outputFileName + ".pvr";
 
                         pvrStream.Position += GBIX_SIZE;
                         uint magic = br.ReadUInt32();
@@ -374,7 +378,7 @@ namespace RECV_Editor.File_Formats
 
                         pvrStream.Position -= 8 + GBIX_SIZE;
 
-                        using (FileStream fs = File.OpenWrite(gcixName))
+                        using (FileStream fs = File.OpenWrite(gbixName))
                         {
                             pvrStream.CopySliceTo(fs, (int)(pvrSize + 0x18));
                         }
@@ -457,7 +461,7 @@ namespace RECV_Editor.File_Formats
                 {
                     case GBIX_MAGIC:
                     case TPVR_MAGIC:
-                    //case PPVP_MAGIC:
+                    case PPVP_MAGIC:
                     case PVPL_MAGIC:
                     case PPVR_MAGIC:
 
