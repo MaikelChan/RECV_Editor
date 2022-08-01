@@ -166,5 +166,10 @@ namespace RECV_Editor
 
             GenerateAfs(output_RDX_LNK_folder, output_RDX_LNK, false, progress, ref currentProgress);
         }
+
+        public static string GetLanguageCode(int language)
+        {
+            return languageCodes[language];
+        }
     }
 }

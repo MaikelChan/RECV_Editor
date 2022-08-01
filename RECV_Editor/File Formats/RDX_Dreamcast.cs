@@ -74,7 +74,7 @@ namespace RECV_Editor.File_Formats
 
                 // Extract all the subBlocks that contain texts
 
-                string textOutputFileName = Path.Combine(outputFolder, string.Format(STRINGS_FILE_NAME, rdxFileName, RECV_PS2.GetLanguageCode(language)));
+                string textOutputFileName = Path.Combine(outputFolder, string.Format(STRINGS_FILE_NAME, rdxFileName, RECV_DC.GetLanguageCode(language)));
                 uint textPosition = subBlockPositions[languageSubBlockIndices[0]];
                 ExtractTexts(rdxStream, textOutputFileName, table, textPosition);
 
