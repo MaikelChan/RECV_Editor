@@ -180,10 +180,7 @@ namespace RECV_Editor.File_Formats
 
                 headerPosition += 4;
                 dataPosition = (uint)advStream.Position;
-
-                //InsertFile(inputFolder, folders[f], advStream, bw, table, bigEndian);
             }
-
         }
 
         static string FindFileOrFolder(string inputFolder, string[] files, string[] folders, int index)

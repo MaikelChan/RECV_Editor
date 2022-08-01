@@ -39,11 +39,6 @@ namespace RECV_Editor.File_Formats
             {
                 uint magic = br.ReadUInt32Endian(IsBigEndian);
 
-                //if (magic == MAGIC_2)
-                //{
-                //    return Results.NotValidRdxFile;
-                //}
-
                 if (magic != MAGIC && magic != MAGIC_2)
                 {
                     return Results.NotValidRdxFile;
@@ -93,15 +88,7 @@ namespace RECV_Editor.File_Formats
                 for (int tp = 0; tp < numberOfTextures; tp++)
                 {
                     rdxStream.Position = texturePositions[tp];
-
-                    //uint textureSize;
-                    //if (tp < numberOfTextures - 1) textureSize = texturePositions[tp + 1] - texturePositions[tp];
-                    //else textureSize = (uint)rdxStream.Length - texturePositions[tp];
-
-                    //using (SubStream tm2Stream = new SubStream(rdxStream, 0, textureSize, true))
-                    //{
                     PVR.Extract(rdxStream, Path.Combine(outputFolder, $"PVR-{tp:0000}"));
-                    //}
                 }
             }
 

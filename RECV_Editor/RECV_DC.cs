@@ -127,23 +127,10 @@ namespace RECV_Editor
                 InsertAdv(originalAdvFile, advInputFolder, outputAdvFile, tempFolder, table, disc, progress, ref currentProgress, MaxExtractionProgressSteps);
             }
 
-            // Generate SYSEFF
-
-            //{
-            //    string syseffFileName = $"syseff{languageIndex}.ald";
-            //    string syseffFilePath = Path.Combine(discOutputFolder, syseffFileName);
-            //    string syseffDataPath = Path.ChangeExtension(Path.Combine(discInputFolder, languageCode, syseffFileName), null);
-
-            //    Logger.Append($"Generating \"{syseffFilePath}\"...");
-            //    progress?.Report(new ProgressInfo($"Generating \"{syseffFileName}\"...", ++currentProgress, MaxInsertionProgressSteps));
-
-            //    InsertSyseff(syseffDataPath, syseffFilePath, table);
-            //}
-
             // Generate MRY
 
             {
-                string mryFileName = $"mry.afs";
+                string mryFileName = "MRY.AFS";
                 string mryInputFolder = Path.ChangeExtension(Path.Combine(discInputFolder, mryFileName), null);
                 string mryOutputFolder = Path.ChangeExtension(Path.Combine(discOutputFolder, mryFileName), null);
                 ExtractAfs(Path.Combine(discOriginalDataFolder, mryFileName), mryOutputFolder, true, disc, progress, ref currentProgress, MaxInsertionProgressSteps);
