@@ -318,12 +318,9 @@ namespace RECV_Editor.File_Formats
             }
         }
 
-        public static void ExtractSimplified(Stream pvrStream, string outputFolder)
+        public static void ExtractSimplified(Stream pvrStream, string outputBaseName)
         {
-            if (!Directory.Exists(outputFolder)) Directory.CreateDirectory(outputFolder);
-
             uint currentTextureIndex = 0;
-            string outputFileName = Path.Combine(outputFolder, $"{currentTextureIndex:0000}");
             uint paletteCount = 0;
 
             // Per PVR block data
@@ -342,8 +339,8 @@ namespace RECV_Editor.File_Formats
 
                         paletteCount++;
                         string paletteName;
-                        if (paletteCount > 1) paletteName = paletteName = outputFileName + $"_{(paletteCount - 1):00}.pvp";
-                        else paletteName = outputFileName + ".pvp";
+                        if (paletteCount > 1) throw new NotImplementedException();// paletteName = paletteName = outputFileName + $"_{(paletteCount - 1):00}.pvp";
+                        else paletteName = outputBaseName + ".pvp";
 
                         pvrStream.Position += 4;
                         uint pvplSize = br.ReadUInt32();
@@ -359,14 +356,14 @@ namespace RECV_Editor.File_Formats
 
                     case GBIX_MAGIC:
                     {
-                        string gbixName = outputFileName + ".pvr";
+                        string gbixName = outputBaseName + ".pvr";
 
                         pvrStream.Position += GBIX_SIZE;
                         uint magic = br.ReadUInt32();
 
                         if (magic != PVRT_MAGIC)
                         {
-                            throw new InvalidDataException($"Invalid PVRT data found in \"{outputFileName}\" at 0x{pvrStream.Position:X8}.");
+                            throw new InvalidDataException($"Invalid PVRT data found in \"{outputBaseName}\" at 0x{pvrStream.Position:X8}.");
                         }
 
                         // Size of the PVR data. Despite the GC being big endian, this data is always little endian.
@@ -386,7 +383,7 @@ namespace RECV_Editor.File_Formats
                         // Reset per entry variables for next entry
 
                         currentTextureIndex++;
-                        outputFileName = Path.Combine(outputFolder, $"{currentTextureIndex:0000}");
+                        //outputFileName = Path.Combine(outputBaseName, $"{currentTextureIndex:0000}");
                         paletteCount = 0;
 
                         break;
@@ -394,7 +391,7 @@ namespace RECV_Editor.File_Formats
 
                     default:
                     {
-                        throw new InvalidDataException($"Invalid header data found in \"{outputFileName}\" at 0x{pvrStream.Position:X8}.");
+                        throw new InvalidDataException($"Invalid header data found in \"{outputBaseName}\" at 0x{pvrStream.Position:X8}.");
                     }
                 }
             }

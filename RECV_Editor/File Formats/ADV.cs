@@ -41,6 +41,8 @@ namespace RECV_Editor.File_Formats
 
         static void ExtractFile(Stream advStream, BinaryReader br, string outputFolder, Table table, bool bigEndian)
         {
+            if (!Directory.Exists(outputFolder)) Directory.CreateDirectory(outputFolder);
+
             uint[] offsets = new uint[MAX_FILES];
             for (int o = 0; o < MAX_FILES; o++)
             {
@@ -58,7 +60,7 @@ namespace RECV_Editor.File_Formats
 
                 advStream.Position = offsets[o];
 
-                string oFolder = Path.Combine(outputFolder, o.ToString());
+                string pathBaseName = Path.Combine(outputFolder, o.ToString());
 
                 uint headerLength = br.ReadUInt32Endian(bigEndian);
                 advStream.Position -= 4;
@@ -67,33 +69,138 @@ namespace RECV_Editor.File_Formats
                 {
                     if (headerLength == HEADER_SIZE)
                     {
-                        ExtractFile(ss, br, oFolder, table, bigEndian);
+                        ExtractFile(ss, br, pathBaseName, table, bigEndian);
                     }
                     else if (headerLength == 0)
                     {
                         // Some rare case where 32 bytes of zeroes are found
 
-                        if (!Directory.Exists(oFolder)) Directory.CreateDirectory(oFolder);
-
-                        using (FileStream fs = File.Create(Path.Combine(oFolder, "data.bin")))
+                        using (FileStream fs = File.Create(pathBaseName + ".bin"))
                         {
                             ss.CopyTo(fs);
                         }
                     }
                     else if (PVR.IsValid(ss))
                     {
-                        PVR.ExtractSimplified(ss, oFolder);
+                        PVR.ExtractSimplified(ss, pathBaseName);
                     }
                     else
                     {
                         string texts = Texts.Extract(ss, table, bigEndian);
-                        string outputFile = Path.Combine(oFolder, "texts.txt");
-
-                        if (!Directory.Exists(oFolder)) Directory.CreateDirectory(oFolder);
-                        File.WriteAllText(outputFile, texts);
+                        File.WriteAllText(pathBaseName + ".txt", texts);
                     }
                 }
             }
+        }
+
+        public static void Insert(string inputFolder, Stream advStream, Table table, bool bigEndian)
+        {
+            if (!Directory.Exists(inputFolder))
+            {
+                throw new DirectoryNotFoundException($"Directory \"{inputFolder}\" does not exist!");
+            }
+
+            if (advStream == null)
+            {
+                throw new ArgumentNullException(nameof(advStream));
+            }
+
+            if (table == null)
+            {
+                throw new ArgumentNullException(nameof(table));
+            }
+
+            using (BinaryWriter bw = new BinaryWriter(advStream, Encoding.UTF8, true))
+            {
+                InsertFile(inputFolder, advStream, bw, table, bigEndian);
+            }
+        }
+
+        static void InsertFile(string inputFolder, Stream advStream, BinaryWriter bw, Table table, bool bigEndian)
+        {
+            uint baseOffset = (uint)advStream.Position;
+            uint headerPosition = baseOffset;
+            uint dataPosition = headerPosition + HEADER_SIZE;
+
+            string[] files = Directory.GetFiles(inputFolder);
+            string[] folders = Directory.GetDirectories(inputFolder);
+
+            int totalFiles = files.Length + folders.Length;
+
+            for (int f = 0; f < totalFiles; f++)
+            {
+                string name = FindFileOrFolder(inputFolder, files, folders, f);
+                string extension = Path.GetExtension(name);
+
+                advStream.Position = headerPosition;
+                bw.Write(dataPosition - baseOffset);
+
+                advStream.Position = dataPosition;
+
+                switch (extension)
+                {
+                    case ".txt":
+                    {
+                        string text = File.ReadAllText(name);
+                        Texts.Insert(text, advStream, table, bigEndian);
+
+                        break;
+                    }
+                    case ".pvp":
+                    {
+                        byte[] bytes = File.ReadAllBytes(name);
+                        advStream.Write(bytes, 0, bytes.Length);
+
+                        for (int i = 0; i < 4; i++) bw.Write(0);
+
+                        break;
+                    }
+                    case ".pvr":
+                    case ".bin":
+                    {
+                        byte[] bytes = File.ReadAllBytes(name);
+                        advStream.Write(bytes, 0, bytes.Length);
+
+                        break;
+                    }
+                    case "":
+                    {
+                        InsertFile(name, advStream, bw, table, bigEndian);
+
+                        break;
+                    }
+                    default:
+                    {
+                        throw new Exception($"Unexpected extension {extension}.");
+                    }
+                }
+
+                uint padding = Utils.Padding((uint)advStream.Position, 0x20) - (uint)advStream.Position;
+                for (uint p = 0; p < padding; p++) bw.Write((byte)0);
+
+                headerPosition += 4;
+                dataPosition = (uint)advStream.Position;
+
+                //InsertFile(inputFolder, folders[f], advStream, bw, table, bigEndian);
+            }
+
+        }
+
+        static string FindFileOrFolder(string inputFolder, string[] files, string[] folders, int index)
+        {
+            for (int f = 0; f < files.Length; f++)
+            {
+                string name = Path.GetFileNameWithoutExtension(files[f]);
+                if (int.Parse(name) == index) return files[f];
+            }
+
+            for (int f = 0; f < folders.Length; f++)
+            {
+                string name = Path.GetFileNameWithoutExtension(folders[f]);
+                if (int.Parse(name) == index) return folders[f];
+            }
+
+            throw new FileNotFoundException($"File with index {index} in {inputFolder} has not been found.");
         }
     }
 }

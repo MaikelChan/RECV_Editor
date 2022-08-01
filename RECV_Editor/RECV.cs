@@ -441,6 +441,37 @@ namespace RECV_Editor
             });
         }
 
+        protected void InsertAdv(string originalAdv, string inputFolder, string outputAdvFile, string tempPath, Table table, int disc, IProgress<ProgressInfo> progress, ref int currentProgressValue, int maxProgressSteps)
+        {
+            if (!File.Exists(originalAdv))
+            {
+                throw new FileNotFoundException($"File \"{originalAdv}\" does not exist!");
+            }
+
+            if (!Directory.Exists(inputFolder))
+            {
+                throw new DirectoryNotFoundException($"Directory \"{inputFolder}\" does not exist!");
+            }
+
+            if (!Directory.Exists(tempPath)) Directory.CreateDirectory(tempPath);
+
+            ExtractAfs(originalAdv, tempPath, true, disc, progress, ref currentProgressValue, maxProgressSteps);
+
+            string[] folders = Directory.GetDirectories(inputFolder);
+
+            for (int f = 0; f < folders.Length; f++)
+            {
+                string advFilePath = Path.Combine(tempPath, Path.GetFileName(folders[f]));
+
+                using (FileStream fs = File.Create(advFilePath))
+                {
+                    ADV.Insert(folders[f], fs, table, IsBigEndian);
+                }
+            }
+
+            GenerateAfs(tempPath, outputAdvFile, true, progress, ref currentProgressValue);
+        }
+
         protected void InsertRdxFiles(string inputRdxLnkFolder, string[] outputRdxFiles, int language, int disc, Table table, Platforms platform, IProgress<ProgressInfo> progress, ref int currentProgress, int maxProgressSteps)
         {
             if (!Directory.Exists(inputRdxLnkFolder))

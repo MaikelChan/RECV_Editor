@@ -53,14 +53,6 @@ namespace RECV_Editor
                 ExtractAdv(discInputFolder, advFileName, advOutputFolder, table, disc, progress, ref currentProgress, MaxExtractionProgressSteps);
             }
 
-            // Extract SYSEFF
-
-            //{
-            //    string syseffFileName = $"syseff{languageIndexString}.ald";
-            //    string syseffOutputFolder = Path.ChangeExtension(Path.Combine(discOutputFolder, languageCode, syseffFileName), null);
-            //    ExtractSyseff(discInputFolder, syseffFileName, syseffOutputFolder, table, progress, ref currentProgress, MaxExtractionProgressSteps);
-            //}
-
             // Extract MRY
 
             {
@@ -79,10 +71,6 @@ namespace RECV_Editor
 
         protected override void InsertDisc(string discInputFolder, string discOutputFolder, string discOriginalDataFolder, Table table, int language, int disc, IProgress<ProgressInfo> progress, ref int currentProgress)
         {
-            throw new NotImplementedException("Ojo, que esto está aún en obras.");
-
-            discOriginalDataFolder = Path.Combine(discOriginalDataFolder, "files");
-
             if (!Directory.Exists(discOriginalDataFolder))
             {
                 throw new DirectoryNotFoundException($"Directory \"{discOriginalDataFolder}\" does not exist!");
@@ -90,14 +78,14 @@ namespace RECV_Editor
 
             // Generate some paths based on selected language
 
-            string languageCode = languageCodes[language];
-            int languageIndex = languageIndices[language];
-            string RDX_LNK_AFS_Path = $"rdx_lnk{disc}.afs";
+            //string languageCode = languageCodes[language];
+            //int languageIndex = languageIndices[language];
+            //string RDX_LNK_AFS_Path = $"rdx_lnk{disc}.afs";
 
-            string input_RDX_LNK = Path.Combine(discInputFolder, RDX_LNK_AFS_Path);
-            string input_RDX_LNK_folder = Path.ChangeExtension(input_RDX_LNK, null);
-            string output_RDX_LNK = Path.Combine(discOutputFolder, RDX_LNK_AFS_Path);
-            string output_RDX_LNK_folder = Path.ChangeExtension(output_RDX_LNK, null);
+            //string input_RDX_LNK = Path.Combine(discInputFolder, RDX_LNK_AFS_Path);
+            //string input_RDX_LNK_folder = Path.ChangeExtension(input_RDX_LNK, null);
+            //string output_RDX_LNK = Path.Combine(discOutputFolder, RDX_LNK_AFS_Path);
+            //string output_RDX_LNK_folder = Path.ChangeExtension(output_RDX_LNK, null);
 
             // Delete existing output folder if it exists
 
@@ -118,9 +106,9 @@ namespace RECV_Editor
             // Generate SYSMES
 
             {
-                string sysmesFileName = $"sysmes{languageIndex}.ald";
+                string sysmesFileName = "SYSMES.ALD";
+                string sysmesDataPath = Path.ChangeExtension(Path.Combine(discInputFolder, sysmesFileName), null);
                 string sysmesFilePath = Path.Combine(discOutputFolder, sysmesFileName);
-                string sysmesDataPath = Path.ChangeExtension(Path.Combine(discInputFolder, languageCode, sysmesFileName), null);
 
                 Logger.Append($"Generating \"{sysmesFilePath}\"...");
                 progress?.Report(new ProgressInfo($"Generating \"{sysmesFileName}\"...", ++currentProgress, MaxInsertionProgressSteps));
@@ -128,18 +116,29 @@ namespace RECV_Editor
                 InsertSysmes(sysmesDataPath, sysmesFilePath, table);
             }
 
-            // Generate SYSEFF
+            // Generate ADV.AFS
 
             {
-                string syseffFileName = $"syseff{languageIndex}.ald";
-                string syseffFilePath = Path.Combine(discOutputFolder, syseffFileName);
-                string syseffDataPath = Path.ChangeExtension(Path.Combine(discInputFolder, languageCode, syseffFileName), null);
-
-                Logger.Append($"Generating \"{syseffFilePath}\"...");
-                progress?.Report(new ProgressInfo($"Generating \"{syseffFileName}\"...", ++currentProgress, MaxInsertionProgressSteps));
-
-                InsertSyseff(syseffDataPath, syseffFilePath, table);
+                string advFileName = "ADV.AFS";
+                string originalAdvFile = Path.Combine(discOriginalDataFolder, advFileName);
+                string advInputFolder = Path.ChangeExtension(Path.Combine(discInputFolder, advFileName), null);
+                string tempFolder = Path.ChangeExtension(Path.Combine(discOutputFolder, advFileName), null);
+                string outputAdvFile = Path.Combine(discOutputFolder, advFileName);
+                InsertAdv(originalAdvFile, advInputFolder, outputAdvFile, tempFolder, table, disc, progress, ref currentProgress, MaxExtractionProgressSteps);
             }
+
+            // Generate SYSEFF
+
+            //{
+            //    string syseffFileName = $"syseff{languageIndex}.ald";
+            //    string syseffFilePath = Path.Combine(discOutputFolder, syseffFileName);
+            //    string syseffDataPath = Path.ChangeExtension(Path.Combine(discInputFolder, languageCode, syseffFileName), null);
+
+            //    Logger.Append($"Generating \"{syseffFilePath}\"...");
+            //    progress?.Report(new ProgressInfo($"Generating \"{syseffFileName}\"...", ++currentProgress, MaxInsertionProgressSteps));
+
+            //    InsertSyseff(syseffDataPath, syseffFilePath, table);
+            //}
 
             // Generate MRY
 
@@ -155,16 +154,16 @@ namespace RECV_Editor
 
             // Extract original RDX_LNK1 file
 
-            ExtractAfs(Path.Combine(discOriginalDataFolder, RDX_LNK_AFS_Path), output_RDX_LNK_folder, false, disc, progress, ref currentProgress, MaxInsertionProgressSteps);
-            string[] outputRdxFiles = Directory.GetFiles(output_RDX_LNK_folder);
+            //ExtractAfs(Path.Combine(discOriginalDataFolder, RDX_LNK_AFS_Path), output_RDX_LNK_folder, false, disc, progress, ref currentProgress, MaxInsertionProgressSteps);
+            //string[] outputRdxFiles = Directory.GetFiles(output_RDX_LNK_folder);
 
-            // Generate RDX files
+            //// Generate RDX files
 
-            InsertRdxFiles(input_RDX_LNK_folder, outputRdxFiles, language, disc, table, Platform, progress, ref currentProgress, MaxInsertionProgressSteps);
+            //InsertRdxFiles(input_RDX_LNK_folder, outputRdxFiles, language, disc, table, Platform, progress, ref currentProgress, MaxInsertionProgressSteps);
 
-            // Insert RDX files into new RDX_LNK1 file
+            //// Insert RDX files into new RDX_LNK1 file
 
-            GenerateAfs(output_RDX_LNK_folder, output_RDX_LNK, false, progress, ref currentProgress);
+            //GenerateAfs(output_RDX_LNK_folder, output_RDX_LNK, false, progress, ref currentProgress);
         }
 
         public static string GetLanguageCode(int language)
