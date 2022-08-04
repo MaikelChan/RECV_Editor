@@ -20,7 +20,7 @@ namespace RECV_Editor
         protected override bool IsBigEndian => false;
 
         protected override int MaxExtractionProgressSteps => 9;
-        protected override int MaxInsertionProgressSteps => 15;
+        protected override int MaxInsertionProgressSteps => 13;
 
         protected override void ExtractDisc(string discInputFolder, string discOutputFolder, Table table, int language, int disc, IProgress<ProgressInfo> progress, ref int currentProgress)
         {
@@ -63,10 +63,12 @@ namespace RECV_Editor
                 PVR.MassExtract(mryOutputFolder, mryOutputFolder, true);
             }
 
-            // Decompress files in RDX_LNK1
+            // Decompress RDX files
 
-            string[] rdxFiles = Directory.GetFiles(discInputFolder, "*.RDX");
-            ExtractRdxFiles(rdxFiles, discOutputFolder, language, disc, table, false, progress, ref currentProgress);
+            {
+                string[] rdxFiles = Directory.GetFiles(discInputFolder, "*.RDX");
+                ExtractRdxFiles(rdxFiles, Path.Combine(discOutputFolder, "RDX"), language, disc, table, false, progress, ref currentProgress);
+            }
         }
 
         protected override void InsertDisc(string discInputFolder, string discOutputFolder, string discOriginalDataFolder, Table table, int language, int disc, IProgress<ProgressInfo> progress, ref int currentProgress)
@@ -75,17 +77,6 @@ namespace RECV_Editor
             {
                 throw new DirectoryNotFoundException($"Directory \"{discOriginalDataFolder}\" does not exist!");
             }
-
-            // Generate some paths based on selected language
-
-            //string languageCode = languageCodes[language];
-            //int languageIndex = languageIndices[language];
-            //string RDX_LNK_AFS_Path = $"rdx_lnk{disc}.afs";
-
-            //string input_RDX_LNK = Path.Combine(discInputFolder, RDX_LNK_AFS_Path);
-            //string input_RDX_LNK_folder = Path.ChangeExtension(input_RDX_LNK, null);
-            //string output_RDX_LNK = Path.Combine(discOutputFolder, RDX_LNK_AFS_Path);
-            //string output_RDX_LNK_folder = Path.ChangeExtension(output_RDX_LNK, null);
 
             // Delete existing output folder if it exists
 
@@ -124,7 +115,7 @@ namespace RECV_Editor
                 string advInputFolder = Path.ChangeExtension(Path.Combine(discInputFolder, advFileName), null);
                 string tempFolder = Path.ChangeExtension(Path.Combine(discOutputFolder, advFileName), null);
                 string outputAdvFile = Path.Combine(discOutputFolder, advFileName);
-                InsertAdv(originalAdvFile, advInputFolder, outputAdvFile, tempFolder, table, disc, progress, ref currentProgress, MaxExtractionProgressSteps);
+                InsertAdv(originalAdvFile, advInputFolder, outputAdvFile, tempFolder, table, disc, progress, ref currentProgress, MaxInsertionProgressSteps);
             }
 
             // Generate MRY
@@ -135,22 +126,26 @@ namespace RECV_Editor
                 string mryOutputFolder = Path.ChangeExtension(Path.Combine(discOutputFolder, mryFileName), null);
                 ExtractAfs(Path.Combine(discOriginalDataFolder, mryFileName), mryOutputFolder, true, disc, progress, ref currentProgress, MaxInsertionProgressSteps);
 
-                GVR.MassInsert(mryInputFolder, mryOutputFolder);
+                PVR.MassInsert(mryInputFolder, mryOutputFolder);
                 GenerateAfs(mryOutputFolder, Path.Combine(discOutputFolder, mryFileName), true, progress, ref currentProgress);
             }
 
-            // Extract original RDX_LNK1 file
+            // Copy original RDX files to output folder
 
-            //ExtractAfs(Path.Combine(discOriginalDataFolder, RDX_LNK_AFS_Path), output_RDX_LNK_folder, false, disc, progress, ref currentProgress, MaxInsertionProgressSteps);
-            //string[] outputRdxFiles = Directory.GetFiles(output_RDX_LNK_folder);
+            {
+                string[] rdxFiles = Directory.GetFiles(discOriginalDataFolder, "*.RDX");
 
-            //// Generate RDX files
+                for (int f = 0; f < rdxFiles.Length; f++)
+                {
+                    string newFile = Path.Combine(discOutputFolder, Path.GetFileName(rdxFiles[f]));
+                    File.Copy(rdxFiles[f], newFile);
+                    rdxFiles[f] = newFile;
+                }
 
-            //InsertRdxFiles(input_RDX_LNK_folder, outputRdxFiles, language, disc, table, Platform, progress, ref currentProgress, MaxInsertionProgressSteps);
+                // Generate RDX files
 
-            //// Insert RDX files into new RDX_LNK1 file
-
-            //GenerateAfs(output_RDX_LNK_folder, output_RDX_LNK, false, progress, ref currentProgress);
+                InsertRdxFiles(Path.Combine(discInputFolder, "RDX"), rdxFiles, language, disc, table, Platform, progress, ref currentProgress, MaxInsertionProgressSteps);
+            }
         }
 
         public static string GetLanguageCode(int language)

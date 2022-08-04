@@ -117,20 +117,6 @@ namespace RECV_Editor.File_Formats
                 throw new ArgumentNullException(nameof(table));
             }
 
-            //string stringsFile = Path.Combine(inputFolder, STRINGS_FILE_NAME);
-
-            //if (!File.Exists(stringsFile))
-            //{
-            //    throw new FileNotFoundException($"File \"{stringsFile}\" does not exist!", stringsFile);
-            //}
-
-            //string[] tim2Paths = Directory.GetDirectories(inputFolder);
-
-            //if (tim2Paths.Length == 0)
-            //{
-            //    throw new DirectoryNotFoundException($"No TIM2 directories have been found in \"{inputFolder}\".");
-            //}
-
             // Gather data we need to preserve from the original RDX
 
             using (BinaryReader br = new BinaryReader(rdxStream, Encoding.UTF8, true))
@@ -171,7 +157,7 @@ namespace RECV_Editor.File_Formats
                 {
                     uint subBlock14Size = (subBlockPositions[15] == 0 ? unk1DataBlockPosition : subBlockPositions[15]) - subBlockPositions[14];
 
-                    string texts = File.ReadAllText(Path.Combine(inputFolder, string.Format(STRINGS_FILE_NAME, rdxFileName, RECV_PS2.GetLanguageCode(language))));
+                    string texts = File.ReadAllText(Path.Combine(inputFolder, string.Format(STRINGS_FILE_NAME, rdxFileName, RECV_DC.GetLanguageCode(language))));
 
                     using (MemoryStream textsStream = new MemoryStream())
                     {
@@ -267,8 +253,8 @@ namespace RECV_Editor.File_Formats
 
                 for (int tp = 0; tp < numberOfTextures; tp++)
                 {
-                    string TIM2Folder = Path.Combine(inputFolder, $"TIM2-{tp:0000}");
-                    if (!Directory.Exists(TIM2Folder)) continue;
+                    string pvrFolder = Path.Combine(inputFolder, $"PVR-{tp:0000}");
+                    if (!Directory.Exists(pvrFolder)) continue;
 
                     rdxStream.Position = texturePositions[tp];
 
@@ -276,7 +262,7 @@ namespace RECV_Editor.File_Formats
                     //if (tp < numberOfTextures - 1) textureSize = texturePositions[tp + 1] - texturePositions[tp];
                     //else textureSize = (uint)rdxStream.Length - texturePositions[tp];
 
-                    TM2.Insert(TIM2Folder, rdxStream);
+                    PVR.Insert(pvrFolder, rdxStream);
                 }
             }
         }
