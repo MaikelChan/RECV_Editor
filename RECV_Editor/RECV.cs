@@ -330,11 +330,26 @@ namespace RECV_Editor
 
             string[] files = Directory.GetFiles(tempOutputFolder);
 
+            if (files.Length != Constants.DC_AdvFileNames.Length)
+            {
+                throw new Exception($"Expected {Constants.DC_AdvFileNames.Length} files inside ADV.AFS but {files.Length} found.");
+            }
+
             for (int f = 0; f < files.Length; f++)
             {
-                using (FileStream fs = File.OpenRead(files[f]))
+                if (Path.GetExtension(Constants.DC_AdvFileNames[f]) == ".ADX")
                 {
-                    ADV.Extract(fs, Path.Combine(advOutputFolder, Path.GetFileNameWithoutExtension(files[f])), table, IsBigEndian);
+                    string newName = Path.Combine(advOutputFolder, Constants.DC_AdvFileNames[f]);
+                    File.Move(files[f], newName);
+                }
+                else
+                {
+                    string newName = Path.Combine(tempOutputFolder, Constants.DC_AdvFileNames[f]);
+
+                    using (FileStream fs = File.OpenRead(files[f]))
+                    {
+                        ADV.Extract(fs, Path.Combine(advOutputFolder, Path.GetFileNameWithoutExtension(newName)), table, IsBigEndian);
+                    }
                 }
             }
 
@@ -457,11 +472,52 @@ namespace RECV_Editor
 
             ExtractAfs(originalAdv, tempPath, true, disc, progress, ref currentProgressValue, maxProgressSteps);
 
+            string[] files = Directory.GetFiles(inputFolder, "*.ADX");
             string[] folders = Directory.GetDirectories(inputFolder);
+
+            for (int f = 0; f < files.Length; f++)
+            {
+                string name = Path.GetFileName(files[f]);
+
+                int indexFound = -1;
+                for (int n = 0; n < Constants.DC_AdvFileNames.Length; n++)
+                {
+                    if (name == Constants.DC_AdvFileNames[n])
+                    {
+                        indexFound = n;
+                        break;
+                    }
+                }
+
+                if (indexFound < 0)
+                {
+                    throw new Exception($"Unexpected file: {files[f]}");
+                }
+
+                string newName = Path.Combine(tempPath, $"{indexFound:00000000}");
+                File.Copy(files[f], newName, true);
+            }
 
             for (int f = 0; f < folders.Length; f++)
             {
-                string advFilePath = Path.Combine(tempPath, Path.GetFileName(folders[f]));
+                string name = Path.GetFileName(folders[f]) + ".bin";
+
+                int indexFound = -1;
+                for (int n = 0; n < Constants.DC_AdvFileNames.Length; n++)
+                {
+                    if (name == Constants.DC_AdvFileNames[n])
+                    {
+                        indexFound = n;
+                        break;
+                    }
+                }
+
+                if (indexFound < 0)
+                {
+                    throw new Exception($"Unexpected folder: {folders[f]}");
+                }
+
+                string advFilePath = Path.Combine(tempPath, $"{indexFound:00000000}");
 
                 using (FileStream fs = File.Create(advFilePath))
                 {

@@ -31,7 +31,10 @@ namespace RECV_Editor.File_Formats
                 // We only need those that start with 0x00000020 
 
                 uint headerLength = br.ReadUInt32Endian(bigEndian);
-                if (headerLength != HEADER_SIZE) return;
+                if (headerLength != HEADER_SIZE)
+                {
+                    throw new InvalidDataException("ADV file is not valid.");
+                }
 
                 advStream.Position -= 4;
 

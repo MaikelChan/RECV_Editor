@@ -844,5 +844,43 @@ namespace RECV_Editor
                 "r4_9370.rdx"
             }
         };
+
+        /// <summary>
+        /// Custom names for Dreamcast's ADV.AFS files.
+        /// </summary>
+        public static readonly string[] DC_AdvFileNames = new string[]
+        {
+            "intrologos.bin",
+            "capcomlogo1.bin",
+            "titlemenu.bin",
+            "SND_residentevil.ADX",
+            "optionmenu.bin",
+            "discchange1.bin",
+            "SND_deathClaire.ADX",
+            "SND_deathSteve.ADX",
+            "SND_deathWesker.ADX",
+            "SND_deathChris.ADX",
+            "SND_explosion1.ADX",
+            "SND_explosion2.ADX",
+            "SND_explosion3.ADX",
+            "SND_explosion4.ADX",
+            "SND_countdownStart.ADX",
+            "SND_countdown10.ADX",
+            "SND_countdown9.ADX",
+            "SND_countdown8.ADX",
+            "SND_countdown7.ADX",
+            "SND_countdown6.ADX",
+            "SND_countdown5.ADX",
+            "SND_countdown4.ADX",
+            "SND_countdown3.ADX",
+            "SND_countdown2.ADX",
+            "SND_countdown1.ADX",
+            "SND_countdown0.ADX",
+            "SND_countdownStart1.ADX",
+            "SND_countdownStart2.ADX",
+            "SND_countdownStart3.ADX",
+            "SND_countdownStart4.ADX",
+            "discchange2.bin"
+        };
     }
 }
